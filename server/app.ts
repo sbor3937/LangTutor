@@ -10,6 +10,7 @@ import { config } from "./config.js";
 import { analyzePronunciation, nextReview } from "../shared/learning.js";
 import {
   attemptSchema,
+  examSubmissionSchema,
   familyAttachSchema,
   familyConnectSchema,
   importSchema,
@@ -32,6 +33,11 @@ import {
   verifyProfilePin,
 } from "./services/family.js";
 export const app = express();
+const thirdBlockLessonIds = new Set(["home", "routine", "weather", "health", "plans"]);
+const thirdBlockScenarioIds = new Set(["home", "routine", "weather", "health", "plans"]);
+const firstTwoBlockLessonIds = ["greetings", "reading", "numbers", "cafe", "city", "hotel", "time", "food", "shopping", "help"];
+const examExpected = ["Grazie", "chi", "dodici", "il conto", "Dov'è la stazione?", "Ho una prenotazione", "A che ora?", "Vorrei una pizza senza formaggio", "Posso pagare con la carta?", "Mi scusi, ho bisogno di aiuto"];
+const hasPassedSecondBlockExam = (profile: string) => Boolean(db.prepare("SELECT 1 FROM skill_attempts WHERE profile_id=? AND exercise_id='mini-exam-blocks-1-2' AND score>=80 LIMIT 1").get(profile));
 app.disable("x-powered-by");
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
@@ -172,7 +178,7 @@ app.get("/api/progress/:aid", (req, res) => {
       .all(id),
     attempts: db
       .prepare(
-        "SELECT skill_type skillType,score,created_at createdAt FROM skill_attempts WHERE profile_id=? ORDER BY created_at DESC",
+        "SELECT exercise_id exerciseId,skill_type skillType,score,created_at createdAt FROM skill_attempts WHERE profile_id=? ORDER BY created_at DESC",
       )
       .all(id),
   });
@@ -181,6 +187,8 @@ app.post("/api/lesson-progress", (req, res) => {
   const p = progressSchema.parse(req.body),
     id = ensureProfile(p.anonymousId),
     now = new Date().toISOString();
+  if (thirdBlockLessonIds.has(p.lessonId) && !hasPassedSecondBlockExam(id))
+    return res.status(403).json({ error: { code: "EXAM_REQUIRED", message: "Сначала сдайте мини-экзамен по урокам 1–10 минимум на 80%." } });
   db.prepare(
     `INSERT INTO lesson_progress(profile_id,lesson_id,current_step,completion_percent,completed,score,last_opened_at,completed_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(profile_id,lesson_id) DO UPDATE SET current_step=excluded.current_step,completion_percent=excluded.completion_percent,completed=excluded.completed,score=excluded.score,last_opened_at=excluded.last_opened_at,completed_at=excluded.completed_at`,
   ).run(
@@ -195,9 +203,22 @@ app.post("/api/lesson-progress", (req, res) => {
   );
   res.json({ ok: true });
 });
+app.post("/api/exam/blocks-1-2", (req, res) => {
+  const submission = examSubmissionSchema.parse(req.body),
+    id = ensureProfile(submission.anonymousId),
+    completedLessons = db.prepare(`SELECT COUNT(*) count FROM lesson_progress WHERE profile_id=? AND completed=1 AND lesson_id IN (${firstTwoBlockLessonIds.map(() => "?").join(",")})`).get(id, ...firstTwoBlockLessonIds) as { count: number };
+  if (completedLessons.count < firstTwoBlockLessonIds.length)
+    return res.status(403).json({ error: { code: "LESSONS_REQUIRED", message: "Сначала завершите уроки 1–10." } });
+  const
+    details = examExpected.map((expected, index) => ({ score: analyzePronunciation(expected, submission.answers[index]).score, expected })),
+    score = Math.round(details.reduce((sum, item) => sum + item.score, 0) / details.length);
+  db.prepare("INSERT INTO skill_attempts VALUES(?,?,?,?,?,?,?,?,?,?)").run(crypto.randomUUID(), id, "help", "mini-exam-blocks-1-2", "quiz", score, "Уроки 1–10", submission.answers.join(" | "), score >= 80 ? "Мини-экзамен сдан" : "Нужно повторение", new Date().toISOString());
+  res.status(201).json({ score, details, passed: score >= 80 });
+});
 app.post("/api/skill-attempt", (req, res) => {
   const a = attemptSchema.parse(req.body),
     id = ensureProfile(a.anonymousId);
+  if (a.exerciseId === "mini-exam-blocks-1-2") return res.status(400).json({ error: { code: "USE_EXAM_ENDPOINT", message: "Результат экзамена рассчитывается сервером." } });
   db.prepare("INSERT INTO skill_attempts VALUES(?,?,?,?,?,?,?,?,?,?)").run(
     crypto.randomUUID(),
     id,
@@ -348,8 +369,10 @@ app.post(
     const p = tutorRequestSchema.parse(req.body),
       id = ensureProfile(p.anonymousId),
       unlockedLessonIds = db.prepare("SELECT lesson_id lessonId FROM lesson_progress WHERE profile_id=? AND (completion_percent>0 OR completed=1)").all(id).map((row: any) => row.lessonId as string),
-      result = await liveTutor(p.message, p.scenario, p.history, unlockedLessonIds),
       now = new Date().toISOString();
+    if (thirdBlockScenarioIds.has(p.scenario) && !hasPassedSecondBlockExam(id))
+      return res.status(403).json({ error: { code: "EXAM_REQUIRED", message: "Сценарий откроется после мини-экзамена." } });
+    const result = await liveTutor(p.message, p.scenario, p.history, unlockedLessonIds);
     db.prepare("INSERT INTO tutor_messages VALUES(?,?,?,?,?,?,?)").run(
       crypto.randomUUID(),
       id,

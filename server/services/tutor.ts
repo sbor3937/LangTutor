@@ -54,6 +54,31 @@ const plans: Record<string, ScenarioPlan> = {
     { replyItalian: "Capisco. Dove lo ha visto l'ultima volta?", replyRussian: "Понимаю. Где вы видели это в последний раз?", nextQuestion: "Если трудно, попросите повторить медленнее." },
     { replyItalian: "Va bene, parlo più lentamente. Andiamo alla stazione.", replyRussian: "Хорошо, говорю медленнее. Пойдем к станции.", nextQuestion: "Поблагодарите за помощь." },
   ]},
+  home: { lessonId: "home", goal: "рассказать о семье и жилье", keyPhrases: ["la mia famiglia", "Abito a…", "C'è…", "Ci sono…"], turns: [
+    { replyItalian: "Parlami della tua famiglia.", replyRussian: "Расскажите о своей семье.", nextQuestion: "Представьте одного или двух членов семьи." },
+    { replyItalian: "Bene! Dove abitate?", replyRussian: "Хорошо! Где вы живёте?", nextQuestion: "Ответьте с Abito a…" },
+    { replyItalian: "Com'è la tua casa?", replyRussian: "Как выглядит ваш дом?", nextQuestion: "Назовите комнаты с C'è или Ci sono." },
+  ]},
+  routine: { lessonId: "routine", goal: "описать обычный день", keyPhrases: ["Mi sveglio…", "Faccio colazione", "Vado…", "Torno…"], turns: [
+    { replyItalian: "A che ora ti svegli?", replyRussian: "Во сколько вы просыпаетесь?", nextQuestion: "Ответьте: Mi sveglio alle…" },
+    { replyItalian: "E dopo colazione dove vai?", replyRussian: "А после завтрака куда вы идёте?", nextQuestion: "Расскажите с Vado al lavoro или Vado a scuola." },
+    { replyItalian: "Che cosa fai la sera?", replyRussian: "Что вы делаете вечером?", nextQuestion: "Назовите вечернее действие и время." },
+  ]},
+  weather: { lessonId: "weather", goal: "обсудить погоду и одежду", keyPhrases: ["Che tempo fa?", "Fa caldo", "Fa freddo", "Piove"], turns: [
+    { replyItalian: "Che tempo fa oggi?", replyRussian: "Какая сегодня погода?", nextQuestion: "Опишите погоду одной фразой." },
+    { replyItalian: "Che cosa metti quando fa freddo?", replyRussian: "Что вы надеваете, когда холодно?", nextQuestion: "Ответьте с Metto…" },
+    { replyItalian: "E quando piove?", replyRussian: "А когда идёт дождь?", nextQuestion: "Скажите, что берёте зонт." },
+  ]},
+  health: { lessonId: "health", goal: "объяснить простое недомогание в аптеке", keyPhrases: ["Non sto bene", "Ho mal di…", "la farmacia", "un medico"], turns: [
+    { replyItalian: "Buongiorno. Come si sente?", replyRussian: "Добрый день. Как вы себя чувствуете?", nextQuestion: "Опишите один простой симптом." },
+    { replyItalian: "Da quanto tempo?", replyRussian: "Как давно?", nextQuestion: "Ответьте: da oggi или da due giorni." },
+    { replyItalian: "Se sta molto male, deve vedere un medico.", replyRussian: "Если вам очень плохо, нужно обратиться к врачу.", nextQuestion: "Подтвердите, что поняли." },
+  ]},
+  plans: { lessonId: "plans", goal: "пригласить и договориться о встрече", keyPhrases: ["Vuoi…?", "Volentieri", "Mi dispiace", "A che ora?"], turns: [
+    { replyItalian: "Che cosa fai domani sera?", replyRussian: "Что вы делаете завтра вечером?", nextQuestion: "Ответьте и предложите совместный план." },
+    { replyItalian: "Volentieri! A che ora ci vediamo?", replyRussian: "С удовольствием! Во сколько встречаемся?", nextQuestion: "Назначьте время встречи." },
+    { replyItalian: "Perfetto. Dove ci vediamo?", replyRussian: "Отлично. Где встречаемся?", nextQuestion: "Назовите место и попрощайтесь до завтра." },
+  ]},
 };
 
 const openRouterAgent = config.proxyUrl ? new ProxyAgent(config.proxyUrl) : undefined;

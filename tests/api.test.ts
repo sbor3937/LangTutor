@@ -3,6 +3,7 @@ import request from "supertest";
 import { app } from "../server/app";
 import { db } from "../server/db/database";
 const aid = "00000000-0000-4000-8000-000000000001";
+const lockedAid = "00000000-0000-4000-8000-000000000011";
 describe("API and repository", () => {
   it("health checks database", async () =>
     expect((await request(app).get("/api/health")).body).toMatchObject({
@@ -89,6 +90,20 @@ describe("API and repository", () => {
       ).status,
     ).toBe(200);
   });
+  it("keeps the third block locked until the server-scored exam is passed", async () => {
+    expect((await request(app).post("/api/lesson-progress").send({ anonymousId: lockedAid, lessonId: "home", currentStep: 0, completionPercent: 10, completed: false })).status).toBe(403);
+    const lessonIds = ["greetings", "reading", "numbers", "cafe", "city", "hotel", "time", "food", "shopping", "help"];
+    for (const lessonId of lessonIds) {
+      expect((await request(app).post("/api/lesson-progress").send({ anonymousId: lockedAid, lessonId, currentStep: 8, completionPercent: 100, completed: true, score: 80 })).status).toBe(200);
+    }
+    const exam = await request(app).post("/api/exam/blocks-1-2").send({ anonymousId: lockedAid, answers: ["Grazie", "chi", "dodici", "il conto", "Dov'è la stazione?", "Ho una prenotazione", "A che ora?", "Vorrei una pizza senza formaggio", "Posso pagare con la carta?", "Mi scusi, ho bisogno di aiuto"] });
+    expect(exam.body).toMatchObject({ score: 100, passed: true });
+    expect((await request(app).post("/api/lesson-progress").send({ anonymousId: lockedAid, lessonId: "home", currentStep: 0, completionPercent: 10, completed: false })).status).toBe(200);
+    const progress = (await request(app).get(`/api/progress/${lockedAid}`)).body;
+    expect(progress.attempts).toEqual(expect.arrayContaining([expect.objectContaining({ exerciseId: "mini-exam-blocks-1-2", score: 100 })]));
+  });
+  it("does not accept a forged exam result through the generic attempt endpoint", async () =>
+    expect((await request(app).post("/api/skill-attempt").send({ anonymousId: aid, lessonId: "help", exerciseId: "mini-exam-blocks-1-2", skillType: "quiz", score: 100 })).status).toBe(400));
   it("persists through a new query boundary", () =>
     expect(
       db.prepare("SELECT COUNT(*) n FROM user_words").get(),

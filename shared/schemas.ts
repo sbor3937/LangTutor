@@ -48,11 +48,15 @@ export const attemptSchema = z.object({
   recognizedText: z.string().max(500).optional(),
   feedback: z.string().max(1000).optional(),
 });
+export const examSubmissionSchema = z.object({
+  anonymousId: z.string().uuid(),
+  answers: z.array(z.string().trim().min(1).max(300)).length(10),
+});
 export const tutorRequestSchema = z.object({
   anonymousId: z.string().uuid(),
   message: z.string().trim().min(1).max(800),
   scenario: z
-    .enum(["intro", "cafe", "ticket", "hotel", "time", "food", "shopping", "directions", "help"])
+    .enum(["intro", "cafe", "ticket", "hotel", "time", "food", "shopping", "directions", "help", "home", "routine", "weather", "health", "plans"])
     .default("intro"),
   history: z
     .array(

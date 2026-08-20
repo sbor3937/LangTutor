@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Routes, Route, Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -33,6 +34,9 @@ import {
 } from "./lib/speech";
 const aid = anonymousId();
 migrateLegacyProfile(aid);
+const examPassScore = 80;
+const hasPassedSecondBlockExam = (progress: any) =>
+  Boolean(progress?.attempts?.some((attempt: any) => attempt.exerciseId === "mini-exam-blocks-1-2" && attempt.score >= examPassScore));
 const createSpeechRecognition = () => {
   const cloud = new CloudSpeechRecognitionProvider();
   return cloud.isAvailable() ? cloud : new BrowserSpeechRecognitionProvider();
@@ -209,6 +213,26 @@ const connectedTraining: Record<
       { it: "Ho perso il biglietto. Dov'è la stazione?", ru: "Я потерял(а) билет. Где станция?" },
     ],
   },
+  home: {
+    phrases: [{ it: "la mia famiglia", ru: "моя семья" }, { it: "mio padre e mia madre", ru: "мой отец и моя мама" }, { it: "due camere", ru: "две комнаты" }],
+    sentences: [{ it: "Questa è la mia famiglia.", ru: "Это моя семья." }, { it: "Abito a Roma.", ru: "Я живу в Риме." }, { it: "C'è una cucina e ci sono due camere.", ru: "Есть кухня и две комнаты." }],
+  },
+  routine: {
+    phrases: [{ it: "alle sette", ru: "в семь часов" }, { it: "al lavoro", ru: "на работу" }, { it: "a casa", ru: "дома" }],
+    sentences: [{ it: "Mi sveglio alle sette.", ru: "Я просыпаюсь в семь." }, { it: "Faccio colazione e vado al lavoro.", ru: "Я завтракаю и иду на работу." }, { it: "Torno alle sei e studio italiano.", ru: "Я возвращаюсь в шесть и учу итальянский." }],
+  },
+  weather: {
+    phrases: [{ it: "fa freddo", ru: "холодно" }, { it: "c'è il sole", ru: "солнечно" }, { it: "la giacca e l'ombrello", ru: "куртка и зонт" }],
+    sentences: [{ it: "Che tempo fa oggi?", ru: "Какая сегодня погода?" }, { it: "Piove e fa freddo.", ru: "Идёт дождь и холодно." }, { it: "Metto la giacca e prendo l'ombrello.", ru: "Я надеваю куртку и беру зонт." }],
+  },
+  health: {
+    phrases: [{ it: "mal di testa", ru: "головная боль" }, { it: "mal di gola", ru: "боль в горле" }, { it: "un farmacista", ru: "фармацевт" }],
+    sentences: [{ it: "Non sto bene. Ho mal di testa.", ru: "Я плохо себя чувствую. У меня болит голова." }, { it: "Mi serve un farmacista.", ru: "Мне нужен фармацевт." }, { it: "Devo vedere un medico.", ru: "Мне нужно обратиться к врачу." }],
+  },
+  plans: {
+    phrases: [{ it: "domani sera", ru: "завтра вечером" }, { it: "al cinema", ru: "в кино" }, { it: "alle otto", ru: "в восемь" }],
+    sentences: [{ it: "Vuoi andare al cinema domani?", ru: "Хочешь завтра пойти в кино?" }, { it: "Volentieri! A che ora ci vediamo?", ru: "С удовольствием! Во сколько встречаемся?" }, { it: "Mi dispiace, non posso. A domani!", ru: "Извини, я не могу. До завтра!" }],
+  },
 };
 const speak = (text: string, rate = 1) =>
   tts
@@ -232,6 +256,15 @@ function Page({
       {children}
     </section>
   );
+}
+function LessonAccess({ children }: { children: ReactNode }) {
+  const { lessonId } = useParams();
+  const lesson = lessons.find((item) => item.id === lessonId);
+  const { data, isLoading } = useQuery({ queryKey: ["progress"], queryFn: () => api<any>(`/api/progress/${aid}`), enabled: Boolean(lesson && lesson.number >= 11) });
+  if (!lesson || lesson.number < 11) return children;
+  if (isLoading) return <Page title="Проверяем доступ"><p>Загружаем результат мини-экзамена…</p></Page>;
+  if (!hasPassedSecondBlockExam(data)) return <Page eyebrow="ТРЕТИЙ БЛОК • ПОКА ЗАКРЫТ" title="Сначала сдайте мини-экзамен"><p className="lead">Для уроков 11–15 нужен сохранённый результат не ниже {examPassScore}%.</p><Link className="button primary" to="/exam">Перейти к мини-экзамену <ArrowRight /></Link></Page>;
+  return children;
 }
 function Home() {
   const { data: profile } = useQuery({
@@ -476,15 +509,17 @@ function Lessons() {
     queryKey: ["progress"],
     queryFn: () => api<any>(`/api/progress/${aid}`),
   });
+  const thirdBlockUnlocked = hasPassedSecondBlockExam(data);
   return (
-    <Page eyebrow="ПРОГРАММА A0" title="Уроки">
+    <Page eyebrow="ПРОГРАММА A0–A1" title="Уроки">
       <p className="lead">
-        Два блока по пять уроков: от первого «Ciao» до самостоятельного дня в
-        Италии и общего мини-экзамена.
+        Три блока по пять уроков: третий блок «Жизнь в Италии» открывается после
+        мини-экзамена по урокам 1–10.
       </p>
       <div className="lesson-list">
         {lessons.map((l) => {
           const p = data?.lessons?.find((x: any) => x.lessonId === l.id);
+          const locked = l.number >= 11 && !thirdBlockUnlocked;
           return (
             <article className="lesson-card" key={l.id}>
               <span className="lesson-number">{l.number}</span>
@@ -503,10 +538,9 @@ function Lessons() {
                   <i style={{ width: `${p?.completionPercent || 0}%` }} />
                 </div>
               </div>
-              <Link className="button secondary" to={`/lessons/${l.id}`}>
-                {p?.completed ? "Повторить" : p ? "Продолжить" : "Начать"}{" "}
-                <ArrowRight />
-              </Link>
+              {locked ? <span className="button ghost" aria-disabled="true">🔒 Экзамен ≥80%</span> : <Link className="button secondary" to={`/lessons/${l.id}`}>
+                {p?.completed ? "Повторить" : p ? "Продолжить" : "Начать"} <ArrowRight />
+              </Link>}
             </article>
           );
         })}
@@ -1635,21 +1669,22 @@ function MiniExam() {
   const { data: progress, isLoading } = useQuery({ queryKey: ["progress"], queryFn: () => api<any>(`/api/progress/${aid}`) });
   const [answers, setAnswers] = useState<string[]>(Array(examTasks.length).fill(""));
   const [result, setResult] = useState<{ score: number; details: { skill: string; score: number; expected: string }[] } | null>(null);
-  const completed = lessons.filter((lesson) => progress?.lessons?.some((item: any) => item.lessonId === lesson.id && item.completed)).length;
-  const ready = completed === lessons.length;
+  const qc = useQueryClient();
+  const firstTwoBlocks = lessons.filter((lesson) => lesson.number <= 10);
+  const completed = firstTwoBlocks.filter((lesson) => progress?.lessons?.some((item: any) => item.lessonId === lesson.id && item.completed)).length;
+  const ready = completed === firstTwoBlocks.length;
   const finish = async () => {
-    const details = examTasks.map((task, index) => ({ skill: task.skill, score: analyzePronunciation(task.expected, answers[index]).score, expected: task.expected }));
-    const score = Math.round(details.reduce((sum, item) => sum + item.score, 0) / details.length);
-    setResult({ score, details });
     try {
-      await api("/api/skill-attempt", { method: "POST", body: JSON.stringify({ anonymousId: aid, lessonId: "help", exerciseId: "mini-exam-blocks-1-2", skillType: "quiz", score, targetText: "Уроки 1–10", recognizedText: answers.join(" | "), feedback: score >= 80 ? "Мини-экзамен сдан" : "Нужно повторение" }) });
-    } catch { /* Результат остаётся виден и без сети. */ }
+      const response = await api<any>("/api/exam/blocks-1-2", { method: "POST", body: JSON.stringify({ anonymousId: aid, answers }) });
+      setResult({ score: response.score, details: response.details.map((detail: any, index: number) => ({ ...detail, skill: examTasks[index].skill })) });
+      await qc.invalidateQueries({ queryKey: ["progress"] });
+    } catch { setResult({ score: 0, details: examTasks.map((task) => ({ skill: task.skill, score: 0, expected: task.expected })) }); }
   };
   if (isLoading) return <Page title="Мини-экзамен"><p>Проверяем готовность…</p></Page>;
   return (
     <Page eyebrow="БЛОКИ 1–2 • УРОКИ 1–10" title="Мини-экзамен: один день в Италии">
       <p className="lead">Десять коротких ситуаций проверяют материал обоих блоков. Можно вводить ответы без точки; регистр не учитывается.</p>
-      {!ready && <div className="feedback" role="status">Завершено уроков: {completed} из {lessons.length}. Экзамен откроется после итоговой проверки урока 10.</div>}
+      {!ready && <div className="feedback" role="status">Завершено уроков: {completed} из {firstTwoBlocks.length}. Экзамен откроется после итоговой проверки урока 10.</div>}
       <div className="quiz">
         {examTasks.map((task, index) => (
           <label key={task.prompt}>{task.prompt}<input value={answers[index]} onChange={(event) => setAnswers((current) => current.map((value, answerIndex) => answerIndex === index ? event.target.value : value))} disabled={!ready || Boolean(result)} /></label>
@@ -1676,6 +1711,11 @@ const tutorStarts: Record<string, { it: string; ru: string; examples: string[] }
   shopping: { it: "Buongiorno. Posso aiutarla?", ru: "Добрый день. Могу вам помочь?", examples: ["Vorrei questo rosso.", "Quanto costa?", "Posso pagare con la carta?"] },
   directions: { it: "Buongiorno. Dove deve andare?", ru: "Добрый день. Куда вам нужно?", examples: ["Dov'è la stazione?", "A destra?", "È vicino?"] },
   help: { it: "Certo, mi dica. Che cosa è successo?", ru: "Конечно, расскажите. Что случилось?", examples: ["Ho perso il biglietto.", "Ho bisogno di aiuto.", "Può ripetere più lentamente?"] },
+  home: { it: "Parlami della tua famiglia.", ru: "Расскажите о своей семье.", examples: ["Questa è la mia famiglia.", "Abito a Roma.", "Ci sono due camere."] },
+  routine: { it: "A che ora ti svegli?", ru: "Во сколько вы просыпаетесь?", examples: ["Mi sveglio alle sette.", "Vado al lavoro.", "Torno alle sei."] },
+  weather: { it: "Che tempo fa oggi?", ru: "Какая сегодня погода?", examples: ["Fa freddo.", "C'è il sole.", "Piove, prendo l'ombrello."] },
+  health: { it: "Buongiorno. Come si sente?", ru: "Добрый день. Как вы себя чувствуете?", examples: ["Non sto bene.", "Ho mal di testa.", "Devo vedere un medico."] },
+  plans: { it: "Che cosa fai domani sera?", ru: "Что вы делаете завтра вечером?", examples: ["Vuoi andare al cinema?", "Volentieri!", "Ci vediamo alle otto."] },
 };
 
 function Tutor() {
@@ -1683,6 +1723,8 @@ function Tutor() {
       queryKey: ["profile"],
       queryFn: () => api<any>(`/api/profile/${aid}`),
     }),
+    { data: progress } = useQuery({ queryKey: ["progress"], queryFn: () => api<any>(`/api/progress/${aid}`) }),
+    thirdBlockUnlocked = hasPassedSecondBlockExam(progress),
     learnerName = italianName(profile?.name),
     intro = {
       role: "assistant",
@@ -1851,10 +1893,11 @@ function Tutor() {
             key={s.id}
             className={scenario === s.id ? "selected" : ""}
             onClick={() => chooseScenario(s.id, s.title)}
+            disabled={!thirdBlockUnlocked && (lessons.find((lesson) => lesson.id === s.lessonId)?.number || 0) >= 11}
           >
             <b>{s.title}</b>
             <small>
-              {s.goal} • {s.minutes} мин
+              {!thirdBlockUnlocked && (lessons.find((lesson) => lesson.id === s.lessonId)?.number || 0) >= 11 ? "🔒 После экзамена" : `${s.goal} • ${s.minutes} мин`}
             </small>
           </button>
         ))}
@@ -2915,13 +2958,13 @@ export function App() {
       <Route element={<Layout />}>
         <Route index element={onboarded ? <Home /> : <Onboarding />} />
         <Route path="lessons" element={<Lessons />} />
-        <Route path="lessons/:lessonId" element={<Lesson />} />
-        <Route path="lessons/:lessonId/listening" element={<Listening />} />
+        <Route path="lessons/:lessonId" element={<LessonAccess><Lesson /></LessonAccess>} />
+        <Route path="lessons/:lessonId/listening" element={<LessonAccess><Listening /></LessonAccess>} />
         <Route
           path="lessons/:lessonId/pronunciation"
-          element={<Pronunciation />}
+          element={<LessonAccess><Pronunciation /></LessonAccess>}
         />
-        <Route path="lessons/:lessonId/quiz" element={<Quiz />} />
+        <Route path="lessons/:lessonId/quiz" element={<LessonAccess><Quiz /></LessonAccess>} />
         <Route path="exam" element={<MiniExam />} />
         <Route path="tutor" element={<Tutor />} />
         <Route path="training" element={<VocabularyTraining />} />
