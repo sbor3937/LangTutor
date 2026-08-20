@@ -1,0 +1,23 @@
+[Unit]
+Description=ItalianLearent local Italian tutor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=italian-tutor
+Group=italian-tutor
+WorkingDirectory=/opt/italian-tutor
+EnvironmentFile=/opt/italian-tutor/.env
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/italian-tutor/data
+
+[Install]
+WantedBy=multi-user.target

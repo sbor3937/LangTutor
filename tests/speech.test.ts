@@ -1,0 +1,2 @@
+import {describe,expect,it} from 'vitest'; import {BrowserSpeechRecognitionProvider,TextFallbackProvider} from '../client/src/lib/speech';
+describe('STT fallback',()=>{it('reports unavailable microphone API',()=>expect(new BrowserSpeechRecognitionProvider().isAvailable()).toBe(false));it('completes in text mode',async()=>expect(await new TextFallbackProvider('ciao').stop()).toEqual({transcript:'ciao'}))});

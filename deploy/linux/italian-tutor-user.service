@@ -1,0 +1,19 @@
+[Unit]
+Description=ItalianLearent local Italian tutor (user service)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/italian-tutor
+EnvironmentFile=/home/user/italian-tutor/.env
+ExecStart=/home/user/.nvm/versions/node/v22.23.2/bin/node dist-server/server/index.js
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

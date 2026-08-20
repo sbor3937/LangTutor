@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-server/
+data/
+.env
+*.log
+backups/
+.DS_Store
+.edge-*/
