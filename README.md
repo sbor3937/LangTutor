@@ -70,6 +70,18 @@ MIGRATION_DATABASE_URL=postgresql://... npm run pg:migrate
 
 Семья хранит общие настройки и права, но не владеет учебным прогрессом. Роли `owner`, `admin`, `guardian`, `member`, `child` преобразуются в централизованные capabilities. Приглашение одноразовое и действует 7 дней; принятие требует повторного ввода пароля. Переход закрывает старую membership и создаёт новую в одной транзакции, сохраняя `user_id`. Единственный owner сначала передаёт владение другому участнику. Все изменения пишутся в безопасный tenant-scoped audit без токенов и секретов.
 
+## Учебные данные и импорт
+
+Итальянский курс расположен в `content/italian/a0-a1/v1` и регистрируется командой `npm run content:seed`. Progress, attempts, skill scores, vocabulary и review schedule принадлежат `user_id`, поэтому смена семьи их не перемещает и не переписывает.
+
+Импорт старого SQLite запускается только после создания аккаунта и явного сопоставления legacy UUID:
+
+```bash
+DATABASE_URL=postgresql://langtutor_runtime:... npm run legacy:import -- source.sqlite LEGACY_UUID USER_UUID ./backups/legacy-import
+```
+
+Импортер проверяет SQLite, создаёт и повторно проверяет backup, использует стабильные IDs, фиксирует SHA-256 fingerprint и parity counts. Повторный запуск с тем же источником является no-op. Исходный SQLite не изменяется и не удаляется.
+
 ## Репозитории
 
 - `origin`: `https://github.com/sbor3937/LangTutor.git`

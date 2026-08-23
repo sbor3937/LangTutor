@@ -36,6 +36,7 @@ import {
 import { postgresPool } from "./platform/postgres/client.js";
 import { createIdentityRouter } from "./identity/router.js";
 import { createFamilyRouter } from "./families/router.js";
+import { createLearningRouter } from "./learning/router.js";
 export const app = express();
 if (config.trustProxyHops > 0) app.set("trust proxy", config.trustProxyHops);
 const thirdBlockLessonIds = new Set(["home", "routine", "weather", "health", "plans"]);
@@ -50,6 +51,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: "256kb" }));
 if (postgresPool) app.use("/api/v1/auth", createIdentityRouter(postgresPool));
 if (postgresPool) app.use("/api/v1/families", createFamilyRouter(postgresPool));
+if (postgresPool) app.use("/api/v1/learning", createLearningRouter(postgresPool));
 const wrap =
   (fn: express.RequestHandler): express.RequestHandler =>
   (req, res, next) =>
@@ -504,6 +506,9 @@ app.use(
       SOLE_OWNER: { status: 409, message: "Сначала передайте права владельца старой семьи" },
       INVALID_OWNER_TARGET: { status: 400, message: "Выберите другого участника семьи" },
       MEMBER_NOT_FOUND: { status: 404, message: "Участник семьи не найден" },
+      COURSE_NOT_FOUND: { status: 404, message: "Курс не найден" },
+      ENROLLMENT_REQUIRED: { status: 409, message: "Сначала запишитесь на курс" },
+      EXERCISE_NOT_SCORABLE: { status: 422, message: "Это упражнение не поддерживает автоматическую оценку" },
     };
     const domain = domainErrors[domainCode];
     if (domain) return res.status(domain.status).json({ error: { code: domainCode, message: domain.message } });
