@@ -35,3 +35,46 @@ jobs:
           context: .
           push: false
           tags: langtutor:ci
+
+  postgres-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: langtutor_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d langtutor_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Create separated database roles
+        env:
+          PGPASSWORD: local-ci-only
+        run: |
+          psql -h 127.0.0.1 -U postgres -d langtutor_test -v ON_ERROR_STOP=1 -f deploy/postgres/bootstrap-roles.sql
+          psql -h 127.0.0.1 -U postgres -d langtutor_test -v ON_ERROR_STOP=1 -c "ALTER ROLE langtutor_runtime LOGIN PASSWORD 'runtime-ci-only'"
+      - name: Apply migrations
+        env:
+          MIGRATION_DATABASE_URL: postgresql://postgres:local-ci-only@127.0.0.1:5432/langtutor_test
+        run: npm run pg:migrate
+      - name: Verify identity and FORCE RLS
+        env:
+          DATABASE_URL: postgresql://langtutor_runtime:runtime-ci-only@127.0.0.1:5432/langtutor_test
+          TEST_DATABASE_URL: postgresql://langtutor_runtime:runtime-ci-only@127.0.0.1:5432/langtutor_test
+          SESSION_PEPPER: local-ci-pepper-at-least-32-characters-long
+          SECURE_COOKIES: "false"
+          DATABASE_PATH: .edge-ci/compat.sqlite
+        run: npx vitest run ../tests/identity.test.ts ../tests/postgres-identity.test.ts ../tests/identity-api.test.ts --environment=node --pool=threads --maxWorkers=1

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Routes, Route, Link, useNavigate, useParams } from "react-router-dom";
+import { AuthPage } from "./components/AuthPage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -2954,6 +2955,7 @@ export function App() {
   const onboarded = isProfileOnboarded(aid);
   return (
     <Routes>
+      <Route path="/auth" element={<AuthPage />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<Layout />}>
         <Route index element={onboarded ? <Home /> : <Onboarding />} />

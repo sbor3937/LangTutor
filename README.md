@@ -51,7 +51,20 @@ docker compose up -d --build
 docker compose ps
 ```
 
-[`compose.coolify.yml`](deploy/coolify/compose.coolify.yml) — deploy-ready каркас. Он не подключает GitHub, DNS или production автоматически. PostgreSQL и Redis будут включены в этапе 1 вместе с проверяемыми миграциями и readiness.
+[`compose.coolify.yml`](deploy/coolify/compose.coolify.yml) — deploy-ready каркас с PostgreSQL 17, Redis и readiness. Он не подключает GitHub, DNS или production автоматически.
+
+## PostgreSQL identity
+
+PostgreSQL использует разделённые роли `langtutor_owner`, `langtutor_migrator`, узкую `langtutor_authenticator` для SECURITY DEFINER lookup-функций и `langtutor_runtime` с `NOBYPASSRLS`. Bootstrap ролей выполняется администратором из `deploy/postgres/bootstrap-roles.sql`; пароли назначаются только через secret manager.
+
+```bash
+# web process
+DATABASE_URL=postgresql://langtutor_runtime:...@postgres:5432/langtutor
+# release migration job; не передавать web process
+MIGRATION_DATABASE_URL=postgresql://... npm run pg:migrate
+```
+
+Регистрация создаёт безопасное outbox-событие без plaintext-токена. Email worker выпускает одноразовый токен непосредственно перед отправкой. До подключения транспорта токены не выводятся в API или логи.
 
 ## Репозитории
 

@@ -1244,3 +1244,9 @@ select {
     transition-duration: 0.01ms !important;
   }
 }
+/* Internet identity entry point. Existing course screens remain compatible during migration. */
+.auth-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg,#f7f3ed)}
+.auth-card{width:min(100%,460px);padding:28px;border-radius:20px;background:var(--surface,#fff);box-shadow:0 18px 50px rgba(55,35,25,.12)}
+.auth-card form,.auth-card label{display:grid;gap:8px}.auth-card form{gap:16px}.auth-card input{min-height:46px;padding:10px 12px;border:1px solid #8d8178;border-radius:10px;font:inherit}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}.auth-tabs button[aria-pressed="true"]{outline:3px solid #7e3f2c;outline-offset:1px}
+.auth-card button:focus-visible,.auth-card input:focus-visible,.auth-card a:focus-visible{outline:3px solid #2457a6;outline-offset:3px}.form-status{min-height:2.5em}.hint{font-size:.9rem;color:#5c514b}

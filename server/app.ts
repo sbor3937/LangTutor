@@ -3,6 +3,7 @@ import path from "node:path";
 import express from "express";
 import helmet from "helmet";
 import compression from "compression";
+import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import { ZodError, z } from "zod";
 import { db, ensureProfile, profileId } from "./db/database.js";
@@ -32,7 +33,10 @@ import {
   touchProfile,
   verifyProfilePin,
 } from "./services/family.js";
+import { postgresPool } from "./platform/postgres/client.js";
+import { createIdentityRouter } from "./identity/router.js";
 export const app = express();
+if (config.trustProxyHops > 0) app.set("trust proxy", config.trustProxyHops);
 const thirdBlockLessonIds = new Set(["home", "routine", "weather", "health", "plans"]);
 const thirdBlockScenarioIds = new Set(["home", "routine", "weather", "health", "plans"]);
 const firstTwoBlockLessonIds = ["greetings", "reading", "numbers", "cafe", "city", "hotel", "time", "food", "shopping", "help"];
@@ -41,7 +45,9 @@ const hasPassedSecondBlockExam = (profile: string) => Boolean(db.prepare("SELECT
 app.disable("x-powered-by");
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
+app.use(cookieParser());
 app.use(express.json({ limit: "256kb" }));
+if (postgresPool) app.use("/api/v1/auth", createIdentityRouter(postgresPool));
 const wrap =
   (fn: express.RequestHandler): express.RequestHandler =>
   (req, res, next) =>
@@ -65,6 +71,12 @@ app.get("/api/health", (_req, res) => {
     });
   }
 });
+app.get("/api/health/live", (_req, res) => res.json({ status: "ok", version: "0.1.0" }));
+app.get("/api/health/ready", wrap(async (_req, res) => {
+  db.prepare("SELECT 1").get();
+  if (postgresPool) await postgresPool.query("SELECT 1");
+  res.json({ status: "ok", database: postgresPool ? "postgresql" : "sqlite-compat", version: "0.1.0" });
+}));
 app.get("/api/system/status", (_req, res) =>
   res.json({
     mode: config.liveAI && config.openrouterKey ? "live" : "demo",
