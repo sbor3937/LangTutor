@@ -7,6 +7,7 @@ import {
   MessageCircle,
   Settings,
   UserRound,
+  UsersRound,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useEffect } from "react";
@@ -59,6 +60,9 @@ export function Layout() {
         </nav>
         <NavLink className="settings-link" to="/settings">
           <Settings /> Настройки
+        </NavLink>
+        <NavLink className="settings-link" to="/family">
+          <UsersRound /> Семья
         </NavLink>
       </aside>
       <main id="content">

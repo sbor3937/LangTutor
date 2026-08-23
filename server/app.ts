@@ -35,6 +35,7 @@ import {
 } from "./services/family.js";
 import { postgresPool } from "./platform/postgres/client.js";
 import { createIdentityRouter } from "./identity/router.js";
+import { createFamilyRouter } from "./families/router.js";
 export const app = express();
 if (config.trustProxyHops > 0) app.set("trust proxy", config.trustProxyHops);
 const thirdBlockLessonIds = new Set(["home", "routine", "weather", "health", "plans"]);
@@ -48,6 +49,7 @@ app.use(compression());
 app.use(cookieParser());
 app.use(express.json({ limit: "256kb" }));
 if (postgresPool) app.use("/api/v1/auth", createIdentityRouter(postgresPool));
+if (postgresPool) app.use("/api/v1/families", createFamilyRouter(postgresPool));
 const wrap =
   (fn: express.RequestHandler): express.RequestHandler =>
   (req, res, next) =>
@@ -490,6 +492,21 @@ app.use(
           message: "Проверьте введённые данные",
         },
       });
+    const domainCode = err instanceof Error ? err.message : "";
+    const domainErrors: Record<string, { status: number; message: string }> = {
+      ALREADY_IN_FAMILY: { status: 409, message: "Пользователь уже состоит в семье" },
+      FORBIDDEN: { status: 403, message: "Недостаточно прав" },
+      REAUTH_FAILED: { status: 401, message: "Повторная аутентификация не пройдена" },
+      VERSION_CONFLICT: { status: 409, message: "Настройки уже изменены; обновите страницу" },
+      INVALID_INVITATION: { status: 400, message: "Приглашение недействительно или устарело" },
+      INVITATION_TARGET_MISMATCH: { status: 403, message: "Приглашение предназначено другому пользователю" },
+      ALREADY_MEMBER: { status: 409, message: "Пользователь уже состоит в этой семье" },
+      SOLE_OWNER: { status: 409, message: "Сначала передайте права владельца старой семьи" },
+      INVALID_OWNER_TARGET: { status: 400, message: "Выберите другого участника семьи" },
+      MEMBER_NOT_FOUND: { status: 404, message: "Участник семьи не найден" },
+    };
+    const domain = domainErrors[domainCode];
+    if (domain) return res.status(domain.status).json({ error: { code: domainCode, message: domain.message } });
     console.error(
       "Request failed:",
       err instanceof Error ? err.name : "Unknown",
