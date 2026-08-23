@@ -1,18 +1,23 @@
-# План реализации
+# План реализации LangTutor
 
-## Состояние и решения
+## Канонические решения
 
-Исходный репозиторий пуст. Выбран React 19 + Vite, Express 5, Zod и SQLite (`better-sqlite3`). Production сервер раздаёт SPA и API на одном порту. Анонимный ID хранится в браузере, основные данные — в SQLite, очередь несохранённых изменений — в localStorage.
+- Модульный монолит: единый web/API и отдельный worker.
+- Drizzle и явные PostgreSQL SQL-миграции; без Prisma.
+- Пользователь владеет учебными данными; семья владеет общими настройками, лимитами и секретами.
+- Серверная capability-авторизация дополняется PostgreSQL FORCE RLS.
+- Demo AI Provider обязателен.
+- Импорт ItalianLearent сохраняет UUID и является идемпотентным.
 
-Live AI использует OpenAI-совместимый API OpenRouter только с backend. По образцу MeetingMind поддерживается отдельный outbound proxy URL, timeout, тест соединения, маскирование секретов и безопасный fallback. TTS/STT — браузерные адаптеры с полноценным текстовым режимом.
+## Этапы
 
-## Этапы и критерии
+0. Fork, branding, CI, container/Coolify scaffold, ADR.
+1. PostgreSQL identity, sessions, email lifecycle, RLS, security tests.
+2. Families, capabilities, invitations, migrations between families, audit.
+3. Versioned Italian content pack, enrolments, progress, scoring, SQLite import.
+4. AI Gateway, Demo/OpenRouter, routing, budgets and usage ledger.
+5. MFA-protected Super Admin boundary.
+6. English core and Phrasal Verbs; extensibility validation.
+7. Backup/restore, load and security review, staging and gated production release.
 
-1. Основа, модели и миграции; health и persistence.
-2. Адаптивный UI, onboarding, dashboard, 5 содержательных уроков.
-3. Аудирование, произношение, shadowing и анализ текста.
-4. Demo/live tutor, словарь, интервалы, прогресс, import/export.
-5. Native Linux/systemd, Docker, backup/restore/update.
-6. `npm run lint`, `npm run typecheck`, `npm run test:run`, `npm run build`, production healthcheck.
-
-Риски: Web Speech API и итальянские голоса зависят от браузера; текстовый fallback обязателен. systemd проверяется статически на Windows, фактическая установка выполняется на Linux 192.168.50.204. Firewall не меняется автоматически.
+Каждый этап завершается проверками и отдельным коммитом. Production activation допускается только после backup/restore и security gates этапа 7.

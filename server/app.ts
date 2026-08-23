@@ -54,7 +54,7 @@ app.get("/api/health", (_req, res) => {
       status: "ok",
       database: "ok",
       dataDirectory: "writable",
-      version: "1.0.0",
+      version: "0.1.0",
     });
   } catch {
     res.status(503).json({
@@ -83,7 +83,7 @@ app.get("/api/system/ca-certificate", (_req, res) => {
     return res.status(404).json({
       error: { code: "TLS_NOT_CONFIGURED", message: "HTTPS не настроен" },
     });
-  res.download(config.tlsCertPath, "italian-tutor-ca.crt");
+  res.download(config.tlsCertPath, "langtutor-ca.crt");
 });
 app.get("/api/profile/:aid", (req, res) => {
   const anonymousId = z.string().uuid().parse(req.params.aid),

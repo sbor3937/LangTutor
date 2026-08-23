@@ -34,7 +34,7 @@ export function Layout() {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <a className="brand" href="/" aria-label="Итальянский с нуля">
+        <a className="brand" href="/" aria-label="LangTutor — итальянский с нуля">
           <span>IT</span>
           <strong>
             Итальянский

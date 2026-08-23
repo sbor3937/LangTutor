@@ -1,0 +1,26 @@
+services:
+  web:
+    build:
+      context: ../..
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATA_DIR: /app/data
+      DATABASE_PATH: /app/data/langtutor.sqlite
+      ENABLE_LIVE_AI: "false"
+      APP_URL: ${APP_URL:-https://langmind.sbortech.ru}
+    volumes:
+      - langtutor_compat_data:/app/data
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  langtutor_compat_data:

@@ -6,7 +6,7 @@ export const config = {
   dataDir: path.resolve(process.env.DATA_DIR || "./data"),
   databasePath: path.resolve(
     process.env.DATABASE_PATH ||
-      path.join(process.env.DATA_DIR || "./data", "italian-tutor.sqlite"),
+      path.join(process.env.DATA_DIR || "./data", "langtutor.sqlite"),
   ),
   liveAI: process.env.ENABLE_LIVE_AI === "true",
   openrouterKey: process.env.OPENROUTER_API_KEY || "",
