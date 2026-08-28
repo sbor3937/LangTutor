@@ -37,6 +37,7 @@ import { postgresPool } from "./platform/postgres/client.js";
 import { createIdentityRouter } from "./identity/router.js";
 import { createFamilyRouter } from "./families/router.js";
 import { createLearningRouter } from "./learning/router.js";
+import { createAiRouter } from "./ai/router.js";
 export const app = express();
 if (config.trustProxyHops > 0) app.set("trust proxy", config.trustProxyHops);
 const thirdBlockLessonIds = new Set(["home", "routine", "weather", "health", "plans"]);
@@ -52,6 +53,7 @@ app.use(express.json({ limit: "256kb" }));
 if (postgresPool) app.use("/api/v1/auth", createIdentityRouter(postgresPool));
 if (postgresPool) app.use("/api/v1/families", createFamilyRouter(postgresPool));
 if (postgresPool) app.use("/api/v1/learning", createLearningRouter(postgresPool));
+if (postgresPool) app.use("/api/v1", createAiRouter(postgresPool));
 const wrap =
   (fn: express.RequestHandler): express.RequestHandler =>
   (req, res, next) =>

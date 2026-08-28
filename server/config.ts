@@ -32,4 +32,10 @@ export const config = {
   smtpUser: process.env.SMTP_USER || "",
   smtpPassword: process.env.SMTP_PASSWORD || "",
   emailFrom: process.env.EMAIL_FROM || "",
+  aiTimeoutMs: Number(process.env.AI_TIMEOUT_MS || 20_000),
+  aiConcurrency: Number(process.env.AI_CONCURRENCY || 8),
+  aiReservedTokens: Number(process.env.AI_RESERVED_TOKENS || 800),
+  aiModelKey: process.env.AI_MODEL_KEY || "openrouter/gpt-4.1-mini",
+  aiCircuitFailures: Number(process.env.AI_CIRCUIT_FAILURES || 3),
+  aiCircuitResetMs: Number(process.env.AI_CIRCUIT_RESET_MS || 30_000),
 };

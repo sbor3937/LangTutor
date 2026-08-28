@@ -79,4 +79,4 @@ jobs:
           SESSION_PEPPER: local-ci-pepper-at-least-32-characters-long
           SECURE_COOKIES: "false"
           DATABASE_PATH: .edge-ci/compat.sqlite
-        run: npx vitest run ../tests/identity.test.ts ../tests/postgres-identity.test.ts ../tests/identity-api.test.ts ../tests/postgres-families.test.ts ../tests/families-api.test.ts ../tests/postgres-learning.test.ts ../tests/legacy-import.test.ts --environment=node --pool=threads --maxWorkers=1
+        run: npx vitest run tests/identity.test.ts tests/postgres-identity.test.ts tests/identity-api.test.ts tests/postgres-families.test.ts tests/families-api.test.ts tests/postgres-learning.test.ts tests/legacy-import.test.ts tests/ai-gateway.test.ts tests/ai-provider.test.ts tests/ai-api.test.ts --environment=node --pool=threads --maxWorkers=1
