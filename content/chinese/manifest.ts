@@ -1,0 +1,2 @@
+import type {PlannedContentPack} from "../types.js";
+export const chinesePlannedPack:PlannedContentPack={status:"planned",languageKey:"zh",languageName:"Китайский",programKey:"chinese-general",programName:"Китайский для русскоязычных",courseKey:"chinese-foundations",courseName:"Китайский: основы",sourceLocale:"ru",targetLocale:"zh-CN",cefr:[],prerequisites:[],skills:["pinyin","tones","characters","listening","speaking"],notes:"Контент, TTS-голоса и публикация отложены. Manifest резервирует стабильные ключи без пустого курса в каталоге."};

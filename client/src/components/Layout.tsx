@@ -17,6 +17,7 @@ import { upsertProfile } from "../lib/profiles";
 const links = [
   ["/", "Главная", House],
   ["/lessons", "Уроки", BookOpen],
+  ["/programs", "Программы", GraduationCap],
   ["/training", "Тренировка", Dumbbell],
   ["/tutor", "Репетитор", MessageCircle],
   ["/words", "Мои слова", GraduationCap],
@@ -35,12 +36,12 @@ export function Layout() {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <a className="brand" href="/" aria-label="LangTutor — итальянский с нуля">
-          <span>IT</span>
+        <a className="brand" href="/" aria-label="LangTutor — языковая платформа">
+          <span>LT</span>
           <strong>
-            Итальянский
+            LangTutor
             <br />
-            <small>с нуля</small>
+            <small>учим языки</small>
           </strong>
         </a>
         <NavLink className="profile-switcher" to="/profiles">

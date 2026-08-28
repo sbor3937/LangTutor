@@ -12,9 +12,10 @@ try {
     const languageId=stableUuid(`language:${pack.languageKey}`),programId=stableUuid(`program:${pack.programKey}`),courseId=stableUuid(`course:${pack.courseKey}`),versionId=stableUuid(`course:${pack.courseKey}:v${pack.version}`);
     const client=await pool.connect(); await client.query("BEGIN");
     try {
-      await client.query("INSERT INTO learning.languages(id,key,name) VALUES($1,$2,$3) ON CONFLICT(key) DO UPDATE SET name=excluded.name",[languageId,pack.languageKey,"Итальянский"]);
-      await client.query("INSERT INTO learning.programs(id,language_id,key,name,source_locale) VALUES($1,$2,$3,$4,$5) ON CONFLICT(key) DO UPDATE SET name=excluded.name",[programId,languageId,pack.programKey,"Итальянский для русскоязычных",pack.sourceLocale]);
-      await client.query("INSERT INTO learning.courses(id,program_id,key,name) VALUES($1,$2,$3,$4) ON CONFLICT(key) DO UPDATE SET name=excluded.name",[courseId,programId,pack.courseKey,"Итальянский A0–A1"]);
+      await client.query("INSERT INTO learning.languages(id,key,name) VALUES($1,$2,$3) ON CONFLICT(key) DO UPDATE SET name=excluded.name",[languageId,pack.languageKey,pack.languageName]);
+      const programMetadata={targetLocale:pack.targetLocale,cefr:pack.cefr,prerequisites:pack.prerequisites,skills:pack.skills,scoringPolicy:pack.scoringPolicy,unlockRules:pack.unlockRules,aiScenarios:pack.aiScenarios};
+      await client.query("INSERT INTO learning.programs(id,language_id,key,name,source_locale,metadata) VALUES($1,$2,$3,$4,$5,$6::jsonb) ON CONFLICT(key) DO UPDATE SET name=excluded.name,source_locale=excluded.source_locale,metadata=excluded.metadata",[programId,languageId,pack.programKey,pack.programName,pack.sourceLocale,JSON.stringify(programMetadata)]);
+      await client.query("INSERT INTO learning.courses(id,program_id,key,name,metadata) VALUES($1,$2,$3,$4,$5::jsonb) ON CONFLICT(key) DO UPDATE SET name=excluded.name,metadata=excluded.metadata",[courseId,programId,pack.courseKey,pack.courseName,JSON.stringify({targetLocale:pack.targetLocale,cefr:pack.cefr})]);
       await client.query("INSERT INTO learning.course_versions(id,course_id,version,status,published_at) VALUES($1,$2,$3,'published',now()) ON CONFLICT(course_id,version) DO NOTHING",[versionId,courseId,pack.version]);
       for (const lesson of pack.lessons) {
         const lessonId=stableUuid(`${pack.courseKey}:v${pack.version}:lesson:${lesson.id}`);
@@ -25,7 +26,7 @@ try {
         }
         for (const [position,word] of lesson.words.entries()) {
           const exerciseKey=`word-${position+1}`,exerciseId=stableUuid(`${lessonId}:${exerciseKey}`);
-          await client.query("INSERT INTO learning.exercises(id,lesson_id,exercise_key,type,position,content) VALUES($1,$2,$3,'translation',$4,$5::jsonb) ON CONFLICT(lesson_id,exercise_key) DO UPDATE SET position=excluded.position,content=excluded.content",[exerciseId,lessonId,exerciseKey,100+position,JSON.stringify({prompt:word.ru,expectedAnswer:word.it,skillType:"vocabulary"})]);
+          await client.query("INSERT INTO learning.exercises(id,lesson_id,exercise_key,type,position,content) VALUES($1,$2,$3,'translation',$4,$5::jsonb) ON CONFLICT(lesson_id,exercise_key) DO UPDATE SET position=excluded.position,content=excluded.content",[exerciseId,lessonId,exerciseKey,100+position,JSON.stringify({prompt:word.source,expectedAnswer:word.target,skillType:"vocabulary"})]);
         }
       }
       await client.query("COMMIT");

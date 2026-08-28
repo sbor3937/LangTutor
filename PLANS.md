@@ -17,7 +17,7 @@
 3. [done] Versioned Italian content pack, enrolments, progress, scoring, SQLite import.
 4. [done] AI Gateway, Demo/OpenRouter, routing, budgets and usage ledger.
 5. [done] MFA-protected Super Admin boundary.
-6. English core and Phrasal Verbs; extensibility validation.
+6. [done] English core and Phrasal Verbs; extensibility validation.
 7. Backup/restore, load and security review, staging and gated production release.
 
 Каждый этап завершается проверками и отдельным коммитом. Production activation допускается только после backup/restore и security gates этапа 7.

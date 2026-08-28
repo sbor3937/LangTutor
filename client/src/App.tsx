@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Routes, Route, Link, useNavigate, useParams } from "react-router-dom";
 import { AuthPage } from "./components/AuthPage";
 import { ControlPage } from "./components/ControlPage";
+import { ProgramsPage } from "./components/ProgramsPage";
 import { FamilyAdmin, JoinFamily } from "./components/FamilyAdmin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -2964,6 +2965,7 @@ export function App() {
       <Route element={<Layout />}>
         <Route index element={onboarded ? <Home /> : <Onboarding />} />
         <Route path="lessons" element={<Lessons />} />
+        <Route path="programs" element={<ProgramsPage />} />
         <Route path="lessons/:lessonId" element={<LessonAccess><Lesson /></LessonAccess>} />
         <Route path="lessons/:lessonId/listening" element={<LessonAccess><Listening /></LessonAccess>} />
         <Route
