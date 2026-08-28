@@ -38,4 +38,6 @@ export const config = {
   aiModelKey: process.env.AI_MODEL_KEY || "openrouter/gpt-4.1-mini",
   aiCircuitFailures: Number(process.env.AI_CIRCUIT_FAILURES || 3),
   aiCircuitResetMs: Number(process.env.AI_CIRCUIT_RESET_MS || 30_000),
+  adminMfaEncryptionKey: process.env.ADMIN_MFA_ENCRYPTION_KEY || "",
+  adminSessionMinutes: Number(process.env.ADMIN_SESSION_MINUTES || 10),
 };

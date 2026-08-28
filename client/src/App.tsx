@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Routes, Route, Link, useNavigate, useParams } from "react-router-dom";
 import { AuthPage } from "./components/AuthPage";
+import { ControlPage } from "./components/ControlPage";
 import { FamilyAdmin, JoinFamily } from "./components/FamilyAdmin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -2957,6 +2958,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/control" element={<ControlPage />} />
       <Route path="/join-family" element={<JoinFamily />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<Layout />}>

@@ -38,6 +38,7 @@ import { createIdentityRouter } from "./identity/router.js";
 import { createFamilyRouter } from "./families/router.js";
 import { createLearningRouter } from "./learning/router.js";
 import { createAiRouter } from "./ai/router.js";
+import { createAdminRouter } from "./admin/router.js";
 export const app = express();
 if (config.trustProxyHops > 0) app.set("trust proxy", config.trustProxyHops);
 const thirdBlockLessonIds = new Set(["home", "routine", "weather", "health", "plans"]);
@@ -54,6 +55,7 @@ if (postgresPool) app.use("/api/v1/auth", createIdentityRouter(postgresPool));
 if (postgresPool) app.use("/api/v1/families", createFamilyRouter(postgresPool));
 if (postgresPool) app.use("/api/v1/learning", createLearningRouter(postgresPool));
 if (postgresPool) app.use("/api/v1", createAiRouter(postgresPool));
+if (postgresPool) app.use("/api/v1/admin", createAdminRouter(postgresPool));
 const wrap =
   (fn: express.RequestHandler): express.RequestHandler =>
   (req, res, next) =>
@@ -484,7 +486,7 @@ app.use((req, res) =>
 app.use(
   (
     err: unknown,
-    _req: express.Request,
+    req: express.Request,
     res: express.Response,
     next: express.NextFunction,
   ) => {
@@ -511,6 +513,11 @@ app.use(
       COURSE_NOT_FOUND: { status: 404, message: "Курс не найден" },
       ENROLLMENT_REQUIRED: { status: 409, message: "Сначала запишитесь на курс" },
       EXERCISE_NOT_SCORABLE: { status: 422, message: "Это упражнение не поддерживает автоматическую оценку" },
+      ADMIN_SESSION_REQUIRED: { status: 401, message: "Требуется повторное подтверждение администратора" },
+      ADMIN_REASON_REQUIRED: { status: 400, message: "Укажите причину действия" },
+      USER_NOT_FOUND_OR_PROTECTED: { status: 403, message: "Защищённую учётную запись нельзя изменить" },
+      USER_BLOCK_RECORD_NOT_FOUND: { status: 409, message: "Состояние блокировки уже изменено" },
+      MFA_ALREADY_ENABLED: { status: 409, message: "MFA уже настроена" },
     };
     const domain = domainErrors[domainCode];
     if (domain) return res.status(domain.status).json({ error: { code: domainCode, message: domain.message } });
@@ -518,6 +525,7 @@ app.use(
       "Request failed:",
       err instanceof Error ? err.name : "Unknown",
     );
+    if(postgresPool)void postgresPool.query("SELECT operations.record_system_event('error','HTTP_UNHANDLED_ERROR',$1)",[z.string().uuid().catch(crypto.randomUUID()).parse(req.get("x-request-id"))]).catch(()=>undefined);
     res.status(500).json({
       error: {
         code: "INTERNAL_ERROR",

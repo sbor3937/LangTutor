@@ -11,9 +11,13 @@ services:
       DATABASE_PATH: /app/data/langtutor.sqlite
       DATABASE_URL: postgresql://${POSTGRES_USER:?required}:${POSTGRES_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:?required}
       SESSION_PEPPER: ${SESSION_PEPPER:?required}
+      ADMIN_MFA_ENCRYPTION_KEY: ${ADMIN_MFA_ENCRYPTION_KEY:?required}
+      ADMIN_SESSION_MINUTES: ${ADMIN_SESSION_MINUTES:-10}
       SECURE_COOKIES: "true"
       TRUST_PROXY_HOPS: "1"
       ENABLE_LIVE_AI: "false"
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      AI_MODEL_KEY: ${AI_MODEL_KEY:-openrouter/gpt-4.1-mini}
       APP_URL: ${APP_URL:-https://langmind.sbortech.ru}
     volumes:
       - langtutor_compat_data:/app/data
