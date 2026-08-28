@@ -91,6 +91,7 @@ describe("API and repository", () => {
     ).toBe(200);
   });
   it("keeps the third block locked until the server-scored exam is passed", async () => {
+    db.prepare("DELETE FROM profiles WHERE anonymous_id=?").run(lockedAid);
     expect((await request(app).post("/api/lesson-progress").send({ anonymousId: lockedAid, lessonId: "home", currentStep: 0, completionPercent: 10, completed: false })).status).toBe(403);
     const lessonIds = ["greetings", "reading", "numbers", "cafe", "city", "hotel", "time", "food", "shopping", "help"];
     for (const lessonId of lessonIds) {

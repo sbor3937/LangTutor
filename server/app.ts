@@ -47,7 +47,7 @@ const firstTwoBlockLessonIds = ["greetings", "reading", "numbers", "cafe", "city
 const examExpected = ["Grazie", "chi", "dodici", "il conto", "Dov'è la stazione?", "Ho una prenotazione", "A che ora?", "Vorrei una pizza senza formaggio", "Posso pagare con la carta?", "Mi scusi, ho bisogno di aiuto"];
 const hasPassedSecondBlockExam = (profile: string) => Boolean(db.prepare("SELECT 1 FROM skill_attempts WHERE profile_id=? AND exercise_id='mini-exam-blocks-1-2' AND score>=80 LIMIT 1").get(profile));
 app.disable("x-powered-by");
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'","'unsafe-inline'"],imgSrc:["'self'","data:","blob:"],fontSrc:["'self'","data:"],connectSrc:["'self'"],mediaSrc:["'self'","blob:"],objectSrc:["'none'"],baseUri:["'self'"],formAction:["'self'"],frameAncestors:["'none'"],upgradeInsecureRequests:config.secureCookies?[]:null}}}));
 app.use(compression());
 app.use(cookieParser());
 app.use(express.json({ limit: "256kb" }));
