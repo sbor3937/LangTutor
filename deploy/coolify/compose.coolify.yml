@@ -35,7 +35,9 @@ services:
         condition: service_healthy
 
   postgres:
-    image: postgres:17-alpine
+    build:
+      context: .
+      dockerfile: deploy/postgres/Dockerfile
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?required}
@@ -45,8 +47,6 @@ services:
       LANGTUTOR_MIGRATION_PASSWORD: ${LANGTUTOR_MIGRATION_PASSWORD:?required}
     volumes:
       - langtutor_postgres:/var/lib/postgresql/data
-      - ./deploy/postgres/bootstrap-roles.sql:/opt/langtutor/bootstrap-roles.sql:ro
-      - ./deploy/postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-langtutor-roles.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
