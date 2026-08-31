@@ -19,6 +19,7 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       AI_MODEL_KEY: ${AI_MODEL_KEY:-openrouter/gpt-4.1-mini}
       APP_URL: ${APP_URL:-https://langmind.sbortech.ru}
+      SERVICE_FQDN_WEB_3000: /
     volumes:
       - langtutor_compat_data:/app/data
     expose:
