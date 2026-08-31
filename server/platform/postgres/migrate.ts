@@ -10,7 +10,7 @@ const pool = new pg.Pool({ connectionString: migrationDatabaseUrl, max: 1 });
 try {
   const migrationDirectory = path.resolve("server/platform/postgres/migrations");
   const files = (await fs.readdir(migrationDirectory)).filter((file) => file.endsWith(".sql")).sort();
-  await pool.query("CREATE SCHEMA IF NOT EXISTS platform AUTHORIZATION langtutor_owner; ALTER SCHEMA platform OWNER TO langtutor_owner; CREATE TABLE IF NOT EXISTS platform.schema_migrations(name text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())");
+  await pool.query("CREATE SCHEMA IF NOT EXISTS platform AUTHORIZATION langtutor_owner; ALTER SCHEMA platform OWNER TO langtutor_owner; CREATE SCHEMA IF NOT EXISTS identity AUTHORIZATION langtutor_owner; ALTER SCHEMA identity OWNER TO langtutor_owner; CREATE TABLE IF NOT EXISTS platform.schema_migrations(name text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())");
   for (const file of files) {
     const sql = await fs.readFile(path.join(migrationDirectory, file), "utf8");
     const checksum = crypto.createHash("sha256").update(sql).digest("hex");
