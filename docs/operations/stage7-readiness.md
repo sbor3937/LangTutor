@@ -13,8 +13,13 @@
 - Trivy HIGH/CRITICAL gate сначала обнаружил уязвимости во встроенном runtime npm toolchain. npm/npx удалены из runtime layer; повторный scan: Debian 0, application Node packages 0 HIGH/CRITICAL.
 - CSP, frame-ancestors, nosniff, referrer и cross-origin headers проверены автоматическим тестом.
 
-## Внешний gate
+## Coolify staging — 2026-09-01
 
-`langmind.sbortech.ru` резолвится в `185.207.1.58`, но проверенный TLS-клиент не доверяет текущей цепочке. Диагностический запрос без проверки сертификата получает `503 no available server`; `/api/health/ready` недоступен. В локальном environment нет Coolify API credential и нет SSH alias для этого VPS, поэтому staging migration, secret provisioning, TLS issuance и production deploy не выполнялись.
-
-До получения доступа нельзя считать этап 7 или production acceptance завершёнными. Для продолжения нужен Coolify API URL/token либо SSH-доступ, переданный через защищённый secret mechanism, а также выбранный staging hostname. Секрет нельзя присылать в чат или коммитить.
+- Создан отдельный Coolify project `LangTutor` и environment `staging`.
+- Публичный адрес: `https://langtutor-staging.185.207.1.58.sslip.io` с доверенной TLS-цепочкой.
+- Root, `/programs` и `/api/health/ready` возвращают HTTP 200; CSP и HSTS присутствуют.
+- PostgreSQL, web и worker работают раздельно; web/PostgreSQL healthy, worker не наследует неприменимый HTTP healthcheck.
+- Release job применил 16 migrations и content seed до запуска web/worker.
+- Runtime role: `NOBYPASSRLS`; NOLOGIN owner: `BYPASSRLS`; временный `CREATE` authenticator после migrations отозван на всех прикладных schemas.
+- Публичный load smoke: 500 запросов, concurrency 20, 0 ошибок, p50 39 ms, p95 830 ms, p99 2310 ms. Gate p95 ≤2000 ms пройден.
+- Создан, но не запущен production resource. Активация `langmind.sbortech.ru` заблокирована до настройки реального SMTP: с фиктивным transport нельзя гарантировать доставку verification/reset email.
