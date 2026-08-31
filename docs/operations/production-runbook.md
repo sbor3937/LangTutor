@@ -17,7 +17,7 @@ Restore drill выполняется в новой БД: decrypt во време
 1. CI: lint, оба typecheck, unit/API/RLS tests, build и container build.
 2. `npm audit --omit=dev`, image vulnerability scan без вывода environment.
 3. Deploy immutable image в staging.
-4. Отдельно запустить профиль `release`: он выполняет скомпилированные migration runner и content seed под `MIGRATION_DATABASE_URL`.
+4. Убедиться, что одноразовый контейнер `release` успешно завершил скомпилированные migration runner и content seed под `MIGRATION_DATABASE_URL`; web и worker зависят от его успешного завершения.
 5. Проверить `/api/health/live`, `/api/health/ready`, auth, Demo AI, tenant isolation, `/programs` и `/control` MFA.
 6. Выполнить `scripts/load-smoke.mjs`; gate: error rate ≤1%, p95 ≤2000 ms.
 7. Создать и проверить pre-production backup.

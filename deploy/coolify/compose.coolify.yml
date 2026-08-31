@@ -33,6 +33,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      release:
+        condition: service_completed_successfully
 
   postgres:
     build:
@@ -72,12 +74,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      release:
+        condition: service_completed_successfully
 
   release:
-    profiles: ["release"]
     build:
       context: .
     command: ["sh", "-c", "node dist-server/server/platform/postgres/migrate.js && node dist-server/server/learning/seed-content.js"]
+    restart: "no"
     environment:
       NODE_ENV: production
       MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?required}
