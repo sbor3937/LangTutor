@@ -4,6 +4,8 @@
 
 Один и тот же `deploy/coolify/compose.coolify.yml` подключается в двух разных Coolify projects. Staging и production обязаны иметь разные PostgreSQL/Redis volumes, домены и наборы secrets. Production-домен — `langmind.sbortech.ru`; staging-домен назначается оператором до deploy. Web использует только runtime DSN, release command — отдельный migration DSN.
 
+Compose рассчитан на project directory в корне checkout. Для локальной проверки используйте `docker-compose --project-directory . -f deploy/coolify/compose.coolify.yml config --quiet`; Coolify задаёт тот же корень автоматически.
+
 ## Backup
 
 Backup выполняется ролью `postgres`/BYPASSRLS, потому что runtime dump под FORCE RLS неполон. Последовательность: `pg_dump -Fc` → `pg_restore --list` → AES-256-GCM encryption командой `scripts/backup-crypto.mjs` → отправка ciphertext в отдельное backup storage → удаление plaintext. `BACKUP_ENCRYPTION_KEY` хранится только в Coolify secret store. Retention: 7 daily / 4 weekly / 6 monthly.
