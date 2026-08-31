@@ -71,6 +71,8 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       EMAIL_FROM: ${EMAIL_FROM:?required}
+    healthcheck:
+      disable: true
     depends_on:
       postgres:
         condition: service_healthy
