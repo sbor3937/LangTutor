@@ -13,5 +13,5 @@ DO $$ BEGIN
   CREATE ROLE langtutor_authenticator NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+GRANT langtutor_authenticator TO langtutor_owner;
 GRANT langtutor_owner TO langtutor_migrator;
-GRANT langtutor_authenticator TO langtutor_migrator;
