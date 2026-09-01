@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Routes, Route, Link, useNavigate, useParams } from "react-router-dom";
 import { AuthPage } from "./components/AuthPage";
+import { ResetPasswordPage, VerifyEmailPage } from "./components/IdentityLifecyclePage";
 import { ControlPage } from "./components/ControlPage";
 import { ProgramsPage } from "./components/ProgramsPage";
+import { InternetCoursePage } from "./components/InternetCoursePage";
 import { FamilyAdmin, JoinFamily } from "./components/FamilyAdmin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -2959,6 +2961,8 @@ export function App() {
   return (
     <Routes>
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/control" element={<ControlPage />} />
       <Route path="/join-family" element={<JoinFamily />} />
       <Route path="/onboarding" element={<Onboarding />} />
@@ -2966,6 +2970,7 @@ export function App() {
         <Route index element={onboarded ? <Home /> : <Onboarding />} />
         <Route path="lessons" element={<Lessons />} />
         <Route path="programs" element={<ProgramsPage />} />
+        <Route path="programs/:courseKey" element={<InternetCoursePage />} />
         <Route path="lessons/:lessonId" element={<LessonAccess><Lesson /></LessonAccess>} />
         <Route path="lessons/:lessonId/listening" element={<LessonAccess><Listening /></LessonAccess>} />
         <Route
