@@ -22,4 +22,12 @@
 - Release job применил 16 migrations и content seed до запуска web/worker.
 - Runtime role: `NOBYPASSRLS`; NOLOGIN owner: `BYPASSRLS`; временный `CREATE` authenticator после migrations отозван на всех прикладных schemas.
 - Публичный load smoke: 500 запросов, concurrency 20, 0 ошибок, p50 39 ms, p95 830 ms, p99 2310 ms. Gate p95 ≤2000 ms пройден.
-- Создан, но не запущен production resource. Активация `langmind.sbortech.ru` заблокирована до настройки реального SMTP: с фиктивным transport нельзя гарантировать доставку verification/reset email.
+
+## Coolify production — 2026-09-01
+
+- SMTP transport и UTF-8 доставка проверены реальным письмом; verification/reset worker использует server-only credentials из Coolify.
+- Production развернут на `https://langmind.sbortech.ru` из коммита `17b50d7`: root, auth, programs, email lifecycle routes, liveness и readiness возвращают HTTP 200 через доверенный TLS; CSP и HSTS присутствуют.
+- Production использует отдельные PostgreSQL/Redis volumes и новый комплект DB/session/MFA secrets. Runtime web healthy, PostgreSQL healthy, worker запущен.
+- Production E2E: token verification 200, login 200, Italian enrollment 201, каталог содержит 15 уроков, deterministic scoring 100, progress persisted. Отрицательный FORCE RLS probe другого пользователя вернул 0 строк; технические E2E-пользователи затем удалены.
+- Production load smoke: 500 запросов к readiness, concurrency 20, 0 ошибок, p50 28 мс, p95 203 мс, p99 277 мс.
+- После очистки E2E-данных создан AES-256-GCM backup `production-initial-2026-09-01.ltbk`; `pg_restore --list` прочитал 448 объектов, plaintext удалён.

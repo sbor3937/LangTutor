@@ -18,6 +18,6 @@
 4. [done] AI Gateway, Demo/OpenRouter, routing, budgets and usage ledger.
 5. [done] MFA-protected Super Admin boundary.
 6. [done] English core and Phrasal Verbs; extensibility validation.
-7. [staging accepted] Backup/restore, load/security review and Coolify staging are complete; production resource is prepared but remains stopped until real SMTP credentials are provisioned.
+7. [production accepted] Backup/restore, load/security review, SMTP, Coolify staging and production deployment are complete. Production is available at `https://langmind.sbortech.ru` with isolated secrets and volumes.
 
 Каждый этап завершается проверками и отдельным коммитом. Production activation допускается только после backup/restore и security gates этапа 7.
