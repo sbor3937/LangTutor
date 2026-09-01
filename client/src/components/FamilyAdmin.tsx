@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { familyRoleLabel } from "../family-role-labels";
 
 type Family = { id: string; name: string; role: string; members: Array<{ user_id: string; role: string }> };
 
@@ -17,7 +18,7 @@ export function FamilyAdmin() {
   async function create(event: FormEvent) { event.preventDefault(); setStatus(""); try { await familyApi("/", { method: "POST", body: JSON.stringify({ name }) }); await load(); } catch (error) { setStatus(error instanceof Error ? error.message : "Ошибка"); } }
   async function invite(event: FormEvent) { event.preventDefault(); setStatus(""); try { const result = await familyApi<{ inviteUrl: string }>("/current/invitations", { method: "POST", body: JSON.stringify({ email, role: "member" }) }); setInviteUrl(result.inviteUrl); setStatus("Приглашение создано. Передайте ссылку адресату безопасным способом."); } catch (error) { setStatus(error instanceof Error ? error.message : "Ошибка"); } }
   if (loading) return <section className="page"><h1>Семья</h1><p role="status">Загрузка…</p></section>;
-  return <section className="page"><h1>Семья</h1>{!family ? <form className="card" onSubmit={create}><h2>Создать семейное пространство</h2><label>Название<input required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} /></label><button className="primary">Создать семью</button></form> : <><div className="card"><h2>{family.name}</h2><p>Ваша роль: {family.role}</p><p>Участников: {family.members.length}</p></div>{["owner","admin"].includes(family.role) && <form className="card" onSubmit={invite}><h2>Пригласить участника</h2><label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label><button className="primary">Создать приглашение</button>{inviteUrl && <label>Одноразовая ссылка<input readOnly value={inviteUrl} onFocus={(event) => event.currentTarget.select()} /></label>}</form>}</>}<p role="status" aria-live="polite">{status}</p></section>;
+  return <section className="page"><h1>Семья</h1>{!family ? <form className="card" onSubmit={create}><h2>Создать семейное пространство</h2><label>Название<input required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} /></label><button className="primary">Создать семью</button></form> : <><div className="card"><h2>{family.name}</h2><p>Ваша роль: {familyRoleLabel(family.role)}</p><p>Участников: {family.members.length}</p></div>{["owner","admin"].includes(family.role) && <form className="card" onSubmit={invite}><h2>Пригласить участника</h2><label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label><button className="primary">Создать приглашение</button>{inviteUrl && <label>Одноразовая ссылка<input readOnly value={inviteUrl} onFocus={(event) => event.currentTarget.select()} /></label>}</form>}</>}<p role="status" aria-live="polite">{status}</p></section>;
 }
 
 export function JoinFamily() {

@@ -2,6 +2,7 @@ import { createContext, FormEvent, useContext, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, Outlet, useNavigate, useParams } from "react-router-dom";
 import { ProgramsPage } from "./ProgramsPage";
+import { familyRoleLabel } from "../family-role-labels";
 
 export type InternetMe = { user_id: string; display_name: string; email: string; familyId: string | null; familyRole: string | null };
 export type Enrollment = { course_key: string; course_name: string; language_key: string; language_name: string; status: string };
@@ -49,7 +50,7 @@ export function ProgramOnboarding() {
 export function InternetAccountPage() {
   const { me } = useInternetAccount(), navigate = useNavigate(), client = useQueryClient();
   async function logout() { await fetch("/api/v1/auth/logout-all", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" }); client.clear(); navigate("/auth", { replace: true }); }
-  return <section className="page"><p className="eyebrow">ИНТЕРНЕТ-АККАУНТ</p><h1>{me.display_name}</h1><div className="card"><p>{me.email}</p><p>{me.familyId ? `Семья подключена · роль: ${me.familyRole}` : "Семья пока не подключена"}</p><Link className="button secondary" to="/family">Управление семьёй</Link><button className="button ghost" onClick={logout}>Выйти</button></div><p>Локальные профили «Ученик» не используются в интернет-версии.</p></section>;
+  return <section className="page"><p className="eyebrow">ИНТЕРНЕТ-АККАУНТ</p><h1>{me.display_name}</h1><div className="card"><p>{me.email}</p><p>{me.familyId ? `Семья подключена · роль: ${familyRoleLabel(me.familyRole)}` : "Семья пока не подключена"}</p><Link className="button secondary" to="/family">Управление семьёй</Link><button className="button ghost" onClick={logout}>Выйти</button></div><p>Локальные профили «Ученик» не используются в интернет-версии.</p></section>;
 }
 
 export function InternetProgressPage() {
