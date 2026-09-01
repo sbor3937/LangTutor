@@ -1,0 +1,104 @@
+services:
+  web:
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATA_DIR: /app/data
+      DATABASE_PATH: /app/data/langtutor.sqlite
+      DATABASE_URL: ${DATABASE_URL:?required}
+      SESSION_PEPPER: ${SESSION_PEPPER:?required}
+      ADMIN_MFA_ENCRYPTION_KEY: ${ADMIN_MFA_ENCRYPTION_KEY:?required}
+      ADMIN_SESSION_MINUTES: ${ADMIN_SESSION_MINUTES:-10}
+      SECURE_COOKIES: "true"
+      TRUST_PROXY_HOPS: "1"
+      ENABLE_LIVE_AI: ${ENABLE_LIVE_AI:-false}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      AI_MODEL_KEY: ${AI_MODEL_KEY:-openrouter/gpt-4.1-mini}
+      APP_URL: ${APP_URL:-https://langmind.sbortech.ru}
+      SERVICE_FQDN_WEB_3000: /
+    volumes:
+      - langtutor_compat_data:/app/data
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      release:
+        condition: service_completed_successfully
+
+  postgres:
+    build:
+      context: .
+      dockerfile: deploy/postgres/Dockerfile
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:?required}
+      LANGTUTOR_RUNTIME_PASSWORD: ${LANGTUTOR_RUNTIME_PASSWORD:?required}
+      LANGTUTOR_MIGRATION_PASSWORD: ${LANGTUTOR_MIGRATION_PASSWORD:?required}
+    volumes:
+      - langtutor_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: .
+    restart: unless-stopped
+    command: ["node", "dist-server/server/worker-entry.js"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?required}
+      SESSION_PEPPER: ${SESSION_PEPPER:?required}
+      APP_URL: ${APP_URL:-https://langmind.sbortech.ru}
+      SMTP_HOST: ${SMTP_HOST:?required}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:?required}
+    healthcheck:
+      disable: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      release:
+        condition: service_completed_successfully
+
+  release:
+    build:
+      context: .
+    command: ["sh", "-c", "node dist-server/server/platform/postgres/migrate.js && node dist-server/server/learning/seed-content.js"]
+    restart: "no"
+    environment:
+      NODE_ENV: production
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?required}"]
+    volumes:
+      - langtutor_redis:/data
+
+volumes:
+  langtutor_compat_data:
+  langtutor_postgres:
+  langtutor_redis:
