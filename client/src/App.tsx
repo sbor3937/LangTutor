@@ -6,6 +6,7 @@ import { ResetPasswordPage, VerifyEmailPage } from "./components/IdentityLifecyc
 import { ControlPage } from "./components/ControlPage";
 import { ProgramsPage } from "./components/ProgramsPage";
 import { InternetCoursePage } from "./components/InternetCoursePage";
+import { InternetTrainingPage, InternetTutorPage } from "./components/InternetPractice";
 import { ActiveCourseRedirect, InternetAccountPage, InternetGate, InternetHomePage, InternetProgressPage, ProgramOnboarding } from "./components/InternetApp";
 import { FamilyAdmin, JoinFamily } from "./components/FamilyAdmin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -2979,8 +2980,8 @@ export function App() {
         />
         <Route path="lessons/:lessonId/quiz" element={<LessonAccess><Quiz /></LessonAccess>} />
         <Route path="exam" element={<MiniExam />} />
-        <Route path="tutor" element={<ActiveCourseRedirect />} />
-        <Route path="training" element={<ActiveCourseRedirect />} />
+        <Route path="tutor" element={<InternetTutorPage />} />
+        <Route path="training" element={<InternetTrainingPage />} />
         <Route path="words" element={<ActiveCourseRedirect />} />
         <Route path="progress" element={<InternetProgressPage />} />
         <Route path="profiles" element={<Navigate to="/account" replace />} />
