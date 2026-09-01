@@ -61,6 +61,11 @@ export function createIdentityRouter(pool: pg.Pool) {
     const session = token ? await service.authenticate(token) : null;
     res.status(session ? 200 : 401).json(session ? { userId: session.user_id, sessionId: session.session_id } : { error: { code: "UNAUTHENTICATED", message: "Требуется вход" } });
   });
+  router.get("/me", async (req, res) => {
+    const token = req.cookies?.[COOKIE] as string | undefined;
+    const me = token ? await service.me(token) : null;
+    res.status(me ? 200 : 401).json(me ?? { error: { code: "UNAUTHENTICATED", message: "Требуется вход" } });
+  });
   router.post("/logout-all", async (req, res) => {
     const token = req.cookies?.[COOKIE] as string | undefined;
     const session = token ? await service.authenticate(token) : null;

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Routes, Route, Link, useNavigate, useParams } from "react-router-dom";
+import { Routes, Route, Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthPage } from "./components/AuthPage";
 import { ResetPasswordPage, VerifyEmailPage } from "./components/IdentityLifecyclePage";
 import { ControlPage } from "./components/ControlPage";
 import { ProgramsPage } from "./components/ProgramsPage";
 import { InternetCoursePage } from "./components/InternetCoursePage";
+import { ActiveCourseRedirect, InternetAccountPage, InternetGate, InternetHomePage, InternetProgressPage, ProgramOnboarding } from "./components/InternetApp";
 import { FamilyAdmin, JoinFamily } from "./components/FamilyAdmin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,7 +27,6 @@ import { analyzePronunciation, onboardingPlan } from "../../shared/learning";
 import { anonymousId, api, createAnonymousId, flushQueue } from "./lib/api";
 import {
   activateProfile,
-  isProfileOnboarded,
   migrateLegacyProfile,
   readProfiles,
   removeProfile as removeLocalProfile,
@@ -2957,18 +2957,18 @@ export function App() {
   useEffect(() => {
     flushQueue();
   }, []);
-  const onboarded = isProfileOnboarded(aid);
   return (
     <Routes>
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/control" element={<ControlPage />} />
+      <Route element={<InternetGate />}>
       <Route path="/join-family" element={<JoinFamily />} />
-      <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<Layout />}>
-        <Route index element={onboarded ? <Home /> : <Onboarding />} />
-        <Route path="lessons" element={<Lessons />} />
+        <Route index element={<InternetHomePage />} />
+        <Route path="onboarding/:courseKey" element={<ProgramOnboarding />} />
+        <Route path="lessons" element={<ActiveCourseRedirect />} />
         <Route path="programs" element={<ProgramsPage />} />
         <Route path="programs/:courseKey" element={<InternetCoursePage />} />
         <Route path="lessons/:lessonId" element={<LessonAccess><Lesson /></LessonAccess>} />
@@ -2979,15 +2979,26 @@ export function App() {
         />
         <Route path="lessons/:lessonId/quiz" element={<LessonAccess><Quiz /></LessonAccess>} />
         <Route path="exam" element={<MiniExam />} />
-        <Route path="tutor" element={<Tutor />} />
-        <Route path="training" element={<VocabularyTraining />} />
-        <Route path="words" element={<Words />} />
-        <Route path="progress" element={<Progress />} />
-        <Route path="profiles" element={<ProfileManager />} />
+        <Route path="tutor" element={<ActiveCourseRedirect />} />
+        <Route path="training" element={<ActiveCourseRedirect />} />
+        <Route path="words" element={<ActiveCourseRedirect />} />
+        <Route path="progress" element={<InternetProgressPage />} />
+        <Route path="profiles" element={<Navigate to="/account" replace />} />
+        <Route path="account" element={<InternetAccountPage />} />
         <Route path="family" element={<FamilyAdmin />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="settings" element={<Navigate to="/account" replace />} />
         <Route path="privacy" element={<Privacy />} />
+        <Route path="legacy-local/home" element={<Home />} />
+        <Route path="legacy-local/onboarding" element={<Onboarding />} />
+        <Route path="legacy-local/lessons" element={<Lessons />} />
+        <Route path="legacy-local/tutor" element={<Tutor />} />
+        <Route path="legacy-local/training" element={<VocabularyTraining />} />
+        <Route path="legacy-local/words" element={<Words />} />
+        <Route path="legacy-local/progress" element={<Progress />} />
+        <Route path="legacy-local/profiles" element={<ProfileManager />} />
+        <Route path="legacy-local/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
+      </Route>
       </Route>
     </Routes>
   );

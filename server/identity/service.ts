@@ -143,6 +143,17 @@ export class IdentityService {
     return result.rows[0] ?? null;
   }
 
+  async me(token: string) {
+    const session = await this.authenticate(token);
+    if (!session) return null;
+    return this.withContext(session.user_id, async (client) => {
+      const user = await client.query<{ user_id: string; display_name: string; email: string }>("SELECT u.id user_id,u.display_name,e.email_display email FROM identity.users u JOIN identity.user_emails e ON e.user_id=u.id WHERE u.id=$1 LIMIT 1", [session.user_id]);
+      if (!user.rows[0]) return null;
+      const family = await client.query<{ family_id: string; role: string }>("SELECT * FROM families.active_context($1)", [session.user_id]);
+      return { ...user.rows[0], sessionId: session.session_id, familyId: family.rows[0]?.family_id ?? null, familyRole: family.rows[0]?.role ?? null };
+    });
+  }
+
   async refresh(refreshToken: string, userAgent: string | null, ipPrefix: string | null) {
     const client = await this.pool.connect();
     try {

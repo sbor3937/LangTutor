@@ -31,6 +31,9 @@ suite("identity API", () => {
     const current = await agent.get("/api/v1/auth/sessions/current");
     expect(current.status).toBe(200);
     expect(current.body.userId).toBe(lookup.rows[0].user_id);
+    const me = await agent.get("/api/v1/auth/me");
+    expect(me.status).toBe(200);
+    expect(me.body).toMatchObject({ user_id: lookup.rows[0].user_id, display_name: credentials.displayName, email: credentials.email });
     expect((await agent.post("/api/v1/auth/refresh")).status).toBe(200);
     expect((await agent.post("/api/v1/auth/logout-all")).status).toBe(204);
     expect((await agent.get("/api/v1/auth/sessions/current")).status).toBe(401);
