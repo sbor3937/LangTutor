@@ -35,6 +35,7 @@ describe("internet practice routes", () => {
     renderRoute("/tutor", <InternetTutorPage />);
     expect(await screen.findByRole("heading", { name: "AI-репетитор" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Ваш ответ" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Ответить голосом" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Отправить" })).toBeEnabled();
   });
 });

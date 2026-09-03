@@ -17,6 +17,8 @@ describe("InternetCoursePage", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/programs/italian-a0-a1"]}><Routes><Route path="/programs/:courseKey" element={<InternetCoursePage />} /></Routes></MemoryRouter></QueryClientProvider>);
     expect(await screen.findByRole("heading", { name: "Итальянский A0–A1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Прослушать Ciao" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Прослушать пример" })).toBeEnabled();
     const form = screen.getByRole("form", { name: "Проверка знания" });
     fireEvent.change(within(form).getByPlaceholderText("Ответ на изучаемом языке"), { target: { value: "Ciao" } });
     fireEvent.click(within(form).getByRole("button", { name: "Проверить ответ" }));

@@ -1,6 +1,8 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
+import { Volume2 } from "lucide-react";
+import { tts } from "../lib/speech";
 
 type Word = { target: string; source: string; example: string; hint: string };
 type Lesson = { lesson_key: string; title: string; position: number; content: { goal: string; minutes: number; explanation: string; words: Word[] } };
@@ -12,6 +14,10 @@ async function request<T>(path: string, init?: RequestInit) {
   const body = await response.json();
   if (!response.ok) throw new Error(body?.error?.message ?? "Не удалось сохранить учебный результат");
   return body as T;
+}
+
+function speak(text: string, rate: number) {
+  return tts.speak(text, { lang: "it-IT", rate }).catch(() => undefined);
 }
 
 export function InternetCoursePage() {
@@ -31,5 +37,5 @@ export function InternetCoursePage() {
   if (course.isLoading || progress.isLoading) return <section className="page"><h1>Курс</h1><p role="status">Загружаем уроки и прогресс…</p></section>;
   if (course.error || progress.error || !course.data || !lesson) return <section className="page"><h1>Курс недоступен</h1><p role="alert">Войдите в аккаунт и выберите программу.</p><Link className="button primary" to="/auth">Войти</Link></section>;
   const firstWord = lesson.content.words[0];
-  return <section className="page internet-course"><p className="eyebrow">{course.data.language_name} · интернет-курс</p><h1>{course.data.name}</h1><div className="course-layout"><nav className="lesson-index" aria-label="Уроки курса">{course.data.lessons.map((item) => { const saved = records.find((entry) => entry.lesson_key === item.lesson_key); return <button type="button" className={item.lesson_key === lesson.lesson_key ? "selected" : ""} key={item.lesson_key} onClick={() => { setSelectedLesson(item.lesson_key); setAnswer(""); setFeedback("Введите перевод и проверьте себя"); }}><span>{item.position}. {item.title}</span><small>{saved?.completed ? "Завершён" : saved ? `${saved.completion_percent}%` : "Не начат"}</small></button>; })}</nav><article className="card lesson-workspace"><p>{lesson.content.minutes} минут</p><h2>{lesson.title}</h2><p className="lead">{lesson.content.goal}</p><p>{lesson.content.explanation}</p><h3>Слова и фразы</h3><div className="word-list">{lesson.content.words.map((word) => <div key={word.target}><b>{word.target}</b><span>{word.source}</span><small>{word.example}</small></div>)}</div>{firstWord && <form aria-label="Проверка знания" onSubmit={submit}><label>{firstWord.source}<input value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Ответ на изучаемом языке" required maxLength={500} /></label><button className="button secondary" type="submit" disabled={attempt.isPending}>Проверить ответ</button></form>}<p className="feedback" role="status" aria-live="polite">{feedback}</p><button className="button primary" type="button" disabled={save.isPending || record?.completed} onClick={() => save.mutate()}>{record?.completed ? "Урок завершён" : "Завершить урок"}</button></article></div></section>;
+  return <section className="page internet-course"><p className="eyebrow">{course.data.language_name} · интернет-курс</p><h1>{course.data.name}</h1><div className="course-layout"><nav className="lesson-index" aria-label="Уроки курса">{course.data.lessons.map((item) => { const saved = records.find((entry) => entry.lesson_key === item.lesson_key); return <button type="button" className={item.lesson_key === lesson.lesson_key ? "selected" : ""} key={item.lesson_key} onClick={() => { setSelectedLesson(item.lesson_key); setAnswer(""); setFeedback("Введите перевод и проверьте себя"); }}><span>{item.position}. {item.title}</span><small>{saved?.completed ? "Завершён" : saved ? `${saved.completion_percent}%` : "Не начат"}</small></button>; })}</nav><article className="card lesson-workspace"><p>{lesson.content.minutes} минут</p><h2>{lesson.title}</h2><p className="lead">{lesson.content.goal}</p><p>{lesson.content.explanation}</p><h3>Слова и фразы</h3><div className="word-list">{lesson.content.words.map((word) => <div key={word.target}><b>{word.target}</b><button className="icon" aria-label={`Прослушать ${word.target}`} onClick={() => void speak(word.target, 0.9)}><Volume2 /></button><span>{word.source}</span><small>{word.example}</small><button className="button ghost" onClick={() => void speak(word.example, 0.85)}>Прослушать пример</button></div>)}</div>{firstWord && <form aria-label="Проверка знания" onSubmit={submit}><label>{firstWord.source}<input value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Ответ на изучаемом языке" required maxLength={500} /></label><button className="button secondary" type="submit" disabled={attempt.isPending}>Проверить ответ</button></form>}<p className="feedback" role="status" aria-live="polite">{feedback}</p><button className="button primary" type="button" disabled={save.isPending || record?.completed} onClick={() => save.mutate()}>{record?.completed ? "Урок завершён" : "Завершить урок"}</button></article></div></section>;
 }
