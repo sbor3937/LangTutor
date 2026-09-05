@@ -5,7 +5,7 @@ import { AuthPage } from "./components/AuthPage";
 import { ResetPasswordPage, VerifyEmailPage } from "./components/IdentityLifecyclePage";
 import { ControlPage } from "./components/ControlPage";
 import { ProgramsPage } from "./components/ProgramsPage";
-import { InternetCoursePage } from "./components/InternetCoursePage";
+import { InternetCoursePage, InternetLessonPage } from "./components/InternetCoursePage";
 import { InternetTrainingPage, InternetTutorPage } from "./components/InternetPractice";
 import { ActiveCourseRedirect, InternetAccountPage, InternetGate, InternetHomePage, InternetProgressPage, ProgramOnboarding } from "./components/InternetApp";
 import { FamilyAdmin, JoinFamily } from "./components/FamilyAdmin";
@@ -2972,6 +2972,7 @@ export function App() {
         <Route path="lessons" element={<ActiveCourseRedirect />} />
         <Route path="programs" element={<ProgramsPage />} />
         <Route path="programs/:courseKey" element={<InternetCoursePage />} />
+        <Route path="programs/:courseKey/lessons/:lessonKey" element={<InternetLessonPage />} />
         <Route path="lessons/:lessonId" element={<LessonAccess><Lesson /></LessonAccess>} />
         <Route path="lessons/:lessonId/listening" element={<LessonAccess><Listening /></LessonAccess>} />
         <Route
