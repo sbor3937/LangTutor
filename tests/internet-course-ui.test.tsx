@@ -17,6 +17,26 @@ function fetcher(url: string, init?: RequestInit) {
 
 describe("internet lesson journey", () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+  it("does not complete a failed quiz and resets the score for a new run", async () => {
+    const mockedFetch = vi.fn(fetcher);
+    vi.stubGlobal("fetch", mockedFetch);
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/programs/italian-a0-a1/lessons/greetings"]}><Routes><Route path="/programs/:courseKey/lessons/:lessonKey" element={<InternetLessonPage />} /></Routes></MemoryRouter></QueryClientProvider>);
+    await screen.findByRole("heading", { name: "Приветствие" });
+    fireEvent.click(screen.getByRole("button", { name: "Проверка" }));
+    for (let index = 0; index < 5; index++) {
+      fireEvent.change(screen.getByRole("textbox"), { target: { value: index === 0 ? "Ciao" : "wrong" } });
+      fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
+      await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(index === 0 ? "100 из 100" : "0 из 100"));
+      if (index < 4) fireEvent.click(screen.getByRole("button", { name: "Следующий вопрос" }));
+    }
+    await waitFor(() => expect(mockedFetch.mock.calls.some(([url, init]) => url.endsWith("/progress") && init?.method === "PUT")).toBe(true));
+    const saved = mockedFetch.mock.calls.find(([url, init]) => url.endsWith("/progress") && init?.method === "PUT");
+    expect(JSON.parse(String(saved?.[1]?.body))).toMatchObject({ completed: false, completionPercent: 90 });
+    expect(screen.getByText("100 из 500 баллов")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ещё раз" }));
+    expect(screen.getByText("0 баллов")).toBeInTheDocument();
+    expect(screen.getByText("Вопрос 1 из 5")).toBeInTheDocument();
+  });
   it("shows the full lesson plan instead of a one-word workspace", async () => {
     vi.stubGlobal("fetch", vi.fn(fetcher));
     render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/programs/italian-a0-a1"]}><Routes><Route path="/programs/:courseKey" element={<InternetCoursePage />} /></Routes></MemoryRouter></QueryClientProvider>);
@@ -32,7 +52,7 @@ describe("internet lesson journey", () => {
     expect(screen.getByText("Ciao")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: /Аудирование/ })[0]);
     expect(screen.getByRole("heading", { name: "Слушаем: Приветствие" })).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText("Arrivederci"));
+    fireEvent.click(screen.getByLabelText("Grazie"));
     fireEvent.click(screen.getByLabelText("Ciao"));
     expect(mockedFetch.mock.calls.filter(([url]) => String(url).endsWith("/attempts"))).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Проверить ответ" }));

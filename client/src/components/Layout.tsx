@@ -25,6 +25,7 @@ export function Layout() {
   ] as const;
   return (
     <div className="shell">
+      <a className="skip-link" href="#content">Перейти к содержимому</a>
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="LangTutor — языковая платформа">
           <span>LT</span>
@@ -43,7 +44,7 @@ export function Layout() {
         </NavLink>
         <nav aria-label="Основная навигация">
           {links.map(([to, label, Icon]) => (
-            <NavLink key={to} to={to} end={to === "/"}>
+            <NavLink key={label} to={to} end={to === "/" || to === "/programs"}>
               <Icon />
               <span>{label}</span>
             </NavLink>
@@ -61,7 +62,7 @@ export function Layout() {
       </main>
       <nav className="bottom" aria-label="Мобильная навигация">
         {links.map(([to, label, Icon]) => (
-          <NavLink key={to} to={to} end={to === "/"}>
+          <NavLink key={label} to={to} end={to === "/" || to === "/programs"}>
             <Icon />
             <span>{label}</span>
           </NavLink>
