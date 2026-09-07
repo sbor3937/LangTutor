@@ -36,6 +36,7 @@ export interface STTResult {
   error?: string;
 }
 export interface STTOptions {
+  lang?: string;
   onInterim?: (s: string) => void;
   onFinal?: (s: string) => void;
   onError?: (code: string) => void;
@@ -79,7 +80,7 @@ export class BrowserSpeechRecognitionProvider implements STTProvider {
     this.ended = false;
     const recognition: Recognition = new C();
     this.recognition = recognition;
-    recognition.lang = "it-IT";
+    recognition.lang = options.lang || "it-IT";
     recognition.interimResults = true;
     recognition.continuous = false;
     recognition.onresult = (event: any) => {
@@ -113,6 +114,7 @@ export class BrowserSpeechRecognitionProvider implements STTProvider {
       const finish = () => {
         if (resolved) return;
         resolved = true;
+        if (!this.ended) previousEnd?.();
         this.ended = true;
         resolve({
           transcript: this.transcript,
@@ -132,6 +134,11 @@ export class BrowserSpeechRecognitionProvider implements STTProvider {
     });
   }
   dispose() {
+    if (this.recognition) {
+      this.recognition.onend = null;
+      this.recognition.onresult = null;
+      this.recognition.onerror = null;
+    }
     if (this.recognition && !this.ended) {
       try {
         this.recognition.abort();

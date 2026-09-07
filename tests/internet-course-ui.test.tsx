@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { BrowserSpeechRecognitionProvider, type STTOptions } from "../client/src/lib/speech";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -16,6 +17,34 @@ function fetcher(url: string, init?: RequestInit) {
 }
 
 describe("internet lesson journey", () => {
+  it("automatically checks pronunciation and allows voice or edited text in the quiz", async () => {
+    const mockedFetch = vi.fn(fetcher);
+    vi.stubGlobal("fetch", mockedFetch);
+    let options: STTOptions = {};
+    vi.spyOn(BrowserSpeechRecognitionProvider.prototype, "isAvailable").mockReturnValue(true);
+    vi.spyOn(BrowserSpeechRecognitionProvider.prototype, "start").mockImplementation(async value => { options = value ?? {}; });
+    vi.spyOn(BrowserSpeechRecognitionProvider.prototype, "stop").mockImplementation(async () => { options.onEnd?.("Ciao"); return { transcript: "Ciao" }; });
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/programs/italian-a0-a1/lessons/greetings"]}><Routes><Route path="/programs/:courseKey/lessons/:lessonKey" element={<InternetLessonPage />} /></Routes></MemoryRouter></QueryClientProvider>);
+    await screen.findByRole("heading", { name: "Приветствие" });
+    fireEvent.click(screen.getAllByRole("button", { name: "Произношение" })[0]);
+    expect(screen.queryByRole("button", { name: "Проверить" })).not.toBeInTheDocument();
+    const mic = screen.getByRole("button", { name: "Произнести" });
+    fireEvent.keyDown(mic, { key: " " });
+    await act(async () => { fireEvent.keyUp(mic, { key: " " }); });
+    await waitFor(() => expect(screen.getByText(/Результат: 100/)).toBeInTheDocument());
+    expect(mockedFetch.mock.calls.filter(([url]) => url.endsWith("/attempts"))).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Проверка" }));
+    const quizMic = screen.getByRole("button", { name: "Произнести" });
+    fireEvent.keyDown(quizMic, { key: " " });
+    await act(async () => { fireEvent.keyUp(quizMic, { key: " " }); });
+    expect(screen.getByRole("textbox")).toHaveValue("Ciao");
+    expect(mockedFetch.mock.calls.filter(([url]) => url.endsWith("/attempts"))).toHaveLength(1);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "edited" } });
+    fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("0 из 100"));
+    const attempts = mockedFetch.mock.calls.filter(([url]) => url.endsWith("/attempts"));
+    expect(JSON.parse(String(attempts[1][1]?.body)).answer).toBe("edited");
+  });
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
   it("does not complete a failed quiz and resets the score for a new run", async () => {
     const mockedFetch = vi.fn(fetcher);
