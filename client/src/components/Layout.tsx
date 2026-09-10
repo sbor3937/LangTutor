@@ -17,7 +17,6 @@ export function Layout() {
   const links = [
     ["/", "Главная", House],
     [coursePath, "Уроки", BookOpen],
-    ["/programs", "Программы", GraduationCap],
     ["/training", "Тренировка", Dumbbell],
     ["/tutor", "Репетитор", MessageCircle],
     ["/words", "Мои слова", GraduationCap],

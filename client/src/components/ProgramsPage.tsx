@@ -1,10 +1,35 @@
-import {useState} from "react";
-import {useMutation,useQuery,useQueryClient} from "@tanstack/react-query";
-import {useNavigate} from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { z } from "zod";
 
-type Course={key:string;name:string;version:number;program_key:string;program_name:string;language_key:string;language_name:string;lesson_count:number;metadata:{cefr?:string[]};program_metadata:{prerequisites?:string[];skills?:string[]}};
-const request=async<T,>(path:string,init?:RequestInit)=>{const response=await fetch(`/api/v1/learning${path}`,{credentials:"include",headers:{"content-type":"application/json"},...init});const body=await response.json();if(!response.ok)throw new Error(body?.error?.message??"Не удалось загрузить программы");return body as T;};
-export function ProgramsPage(){const client=useQueryClient(),navigate=useNavigate(),[status,setStatus]=useState("Выберите программу обучения"),catalog=useQuery({queryKey:["internet-programs"],queryFn:()=>request<{courses:Course[]}>("/catalog")}),enroll=useMutation({mutationFn:async(courseKey:string)=>courseKey,onSuccess:async(courseKey)=>{setStatus("Программа выбрана. Настроим персональный план…");await client.invalidateQueries({queryKey:["internet-progress"]});navigate(`/onboarding/${courseKey}`);},onError:error=>setStatus((error as Error).message)});
-  if(catalog.isLoading)return <section className="page"><h1>Учебные программы</h1><p role="status">Загружаем каталог…</p></section>;if(catalog.error)return <section className="page"><h1>Учебные программы</h1><p role="alert">{catalog.error.message}. Войдите в интернет-аккаунт на странице авторизации.</p></section>;
-  const grouped=(catalog.data?.courses??[]).reduce<Map<string,Course[]>>((result,course)=>{result.set(course.language_name,[...(result.get(course.language_name)??[]),course]);return result;},new Map());return <section className="page programs-page"><h1>Учебные программы</h1><p role="status">{status}</p>{[...grouped].map(([language,courses])=><section key={language} aria-labelledby={`language-${courses[0].language_key}`}><h2 id={`language-${courses[0].language_key}`}>{language}</h2><div className="program-grid">{courses.map(course=><article key={course.key}><h3>{course.name}</h3><p>{course.program_name}</p><p>Уроков: {course.lesson_count} · версия {course.version}{course.metadata.cefr?.length?` · ${course.metadata.cefr.join("–")}`:""}</p>{course.program_metadata.prerequisites?.length?<p>Рекомендуется: {course.program_metadata.prerequisites.join(", ")}</p>:null}<button disabled={enroll.isPending} onClick={()=>enroll.mutate(course.key)}>Выбрать программу</button></article>)}</div></section>)}</section>;
+const catalogSchema = z.object({ courses: z.array(z.object({ key: z.string(), name: z.string(), program_name: z.string(), language_key: z.string(), language_name: z.string(), lesson_count: z.number(), metadata: z.object({ cefr: z.array(z.string()).optional() }) })) });
+type Course = z.infer<typeof catalogSchema>["courses"][number];
+export function ProgramsPage({ embedded = false, enrolledKeys = [] }: { embedded?: boolean; enrolledKeys?: string[] }) {
+  const catalog = useQuery({ queryKey: ["internet-programs"], queryFn: async () => {
+    const response = await fetch("/api/v1/learning/catalog", { credentials: "include" });
+    if (!response.ok) throw new Error("Не удалось загрузить программы");
+    return catalogSchema.parse(await response.json());
+  } });
+  const Heading = embedded ? "h2" : "h1", LanguageHeading = embedded ? "h3" : "h2", CourseHeading = embedded ? "h4" : "h3";
+  const grouped = (catalog.data?.courses ?? []).reduce<Map<string, Course[]>>((result, course) => {
+    result.set(course.language_name, [...(result.get(course.language_name) ?? []), course]); return result;
+  }, new Map());
+  return <section id="learning-programs" className={embedded ? "home-block home-catalog programs-page" : "page programs-page"} aria-labelledby="programs-heading">
+    <p className="eyebrow">ВЫБОР КУРСА</p><Heading id="programs-heading">Программы обучения</Heading>
+    <p className="lead">Выберите язык и подходящий курс. Начатые программы можно открыть без повторной настройки.</p>
+    {catalog.isLoading && <p role="status">Загружаем каталог…</p>}
+    {catalog.error && <div role="alert"><p>Не удалось загрузить программы. Попробуйте ещё раз.</p><button onClick={() => void catalog.refetch()}>Повторить</button></div>}
+    {!catalog.isLoading && !catalog.error && !grouped.size && <p>Новые программы скоро появятся.</p>}
+    {[...grouped].map(([language, courses]) => <section key={language} aria-labelledby={`language-${courses[0].language_key}`}>
+      <LanguageHeading id={`language-${courses[0].language_key}`}>{language}</LanguageHeading>
+      <div className="program-grid">{courses.map(course => {
+        const enrolled = enrolledKeys.includes(course.key);
+        return <article key={course.key}><CourseHeading>{course.name}</CourseHeading><p>{course.program_name}</p>
+          <p>Уроков: {course.lesson_count}{course.metadata.cefr?.length ? ` · ${course.metadata.cefr.join("–")}` : ""}</p>
+          {enrolled && <p className="lesson-status">Уже в моём обучении</p>}
+          <Link className="button secondary" to={enrolled ? `/programs/${course.key}` : `/onboarding/${course.key}`}>{enrolled ? "Открыть курс" : "Выбрать программу"}</Link>
+        </article>;
+      })}</div>
+    </section>)}
+  </section>;
 }

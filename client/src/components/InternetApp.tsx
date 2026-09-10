@@ -43,8 +43,12 @@ export function useInternetAccount() { const value = useContext(InternetContext)
 
 export function InternetHomePage() {
   const { me, enrollments } = useInternetAccount();
-  if (!enrollments.length) return <section className="page"><p className="eyebrow">ДОБРО ПОЖАЛОВАТЬ, {me.display_name}</p><h1>Что вы хотите изучать?</h1><p className="lead">Сначала выберите программу. После выбора LangTutor предложит цели и темп именно для этого языка.</p><ProgramsPage /></section>;
-  return <section className="page"><p className="eyebrow">ВАШИ ПРОГРАММЫ</p><h1>Продолжить обучение</h1><div className="program-grid">{enrollments.map(item => <article key={item.course_key}><p>{item.language_name}</p><h2>{item.course_name}</h2><Link className="button primary" to={`/programs/${item.course_key}`}>Открыть уроки</Link></article>)}</div><p><Link to="/programs">Добавить другую программу</Link></p></section>;
+  return <section className="page learning-home"><p className="eyebrow">ДОБРО ПОЖАЛОВАТЬ, {me.display_name}</p><h1>Главная</h1>
+    <section className="home-block home-continue" aria-labelledby="continue-heading"><p className="eyebrow">МОИ КУРСЫ</p><h2 id="continue-heading">Продолжить обучение</h2>
+      {enrollments.length ? <><p>Вернитесь к урокам выбранной программы.</p><div className="program-grid">{enrollments.map(item => <article key={item.course_key}><p>{item.language_name}</p><h3>{item.course_name}</h3><Link className="button primary" to={`/programs/${item.course_key}`}>Открыть уроки</Link></article>)}</div></> : <p>Вы пока не начали ни одного курса. Выберите программу в блоке ниже — здесь появится быстрый доступ к вашим урокам.</p>}
+    </section>
+    <ProgramsPage embedded enrolledKeys={enrollments.map(item => item.course_key)} />
+  </section>;
 }
 
 export function ProgramOnboarding() {
