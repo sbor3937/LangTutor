@@ -1,6 +1,6 @@
-import { createContext, FormEvent, useContext, useState } from "react";
+import { createContext, FormEvent, useContext, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Navigate, Outlet, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ProgramsPage } from "./ProgramsPage";
 import { familyRoleLabel } from "../family-role-labels";
 
@@ -25,12 +25,19 @@ async function loadMe() {
 }
 
 export function InternetGate() {
+  const location = useLocation();
   const me = useQuery({ queryKey: ["internet-me"], queryFn: loadMe, retry: false });
   const enrollments = useQuery({ queryKey: ["internet-enrollments"], queryFn: () => json<{ enrollments: Enrollment[] }>("/api/v1/learning/enrollments"), enabled: Boolean(me.data), retry: false });
+  const routeKey = location.pathname.startsWith("/programs/") ? location.pathname.split("/")[2] : "";
+  const routeCourse = enrollments.data?.enrollments.find(item => item.course_key === routeKey);
+  const storageKey = `langtutor:active-course:${me.data?.user_id ?? ""}`;
+  useEffect(() => { if (me.data && routeCourse) { try { sessionStorage.setItem(storageKey, routeCourse.course_key); } catch { /* storage is optional */ } } }, [me.data, routeCourse, storageKey]);
   if (me.isLoading || (me.data && enrollments.isLoading)) return <main className="auth-page"><section className="auth-card"><h1>LangTutor</h1><p role="status">Загружаем ваш аккаунт…</p></section></main>;
   if (!me.data) return <Navigate to="/auth" replace />;
   const items = enrollments.data?.enrollments ?? [];
-  return <InternetContext.Provider value={{ me: me.data, enrollments: items, activeCourse: items[0] ?? null }}><Outlet /></InternetContext.Provider>;
+  let savedKey: string | null = null;
+  try { savedKey = sessionStorage.getItem(storageKey); } catch { /* storage is optional */ }
+  return <InternetContext.Provider value={{ me: me.data, enrollments: items, activeCourse: routeCourse ?? items.find(item => item.course_key === savedKey) ?? items[0] ?? null }}><Outlet /></InternetContext.Provider>;
 }
 export function useInternetAccount() { const value = useContext(InternetContext); if (!value) throw new Error("Internet account context is missing"); return value; }
 
@@ -42,9 +49,9 @@ export function InternetHomePage() {
 
 export function ProgramOnboarding() {
   const { courseKey = "" } = useParams(), navigate = useNavigate(), client = useQueryClient();
-  const [goal, setGoal] = useState("travel"), [minutes, setMinutes] = useState(15), [level, setLevel] = useState("zero"), [status, setStatus] = useState("");
+  const [goal, setGoal] = useState(""), [minutes, setMinutes] = useState(15), [level, setLevel] = useState(""), [status, setStatus] = useState("");
   async function submit(event: FormEvent) { event.preventDefault(); setStatus("Сохраняем персональный план…"); try { await json("/api/v1/learning/enrollments", { method: "POST", body: JSON.stringify({ courseKey }) }); await json("/api/v1/learning/settings", { method: "PUT", body: JSON.stringify({ [`course:${courseKey}`]: { goal, dailyMinutes: minutes, initialLevel: level } }) }); await client.invalidateQueries({ queryKey: ["internet-enrollments"] }); navigate(`/programs/${courseKey}`, { replace: true }); } catch { setStatus("Не удалось сохранить план. Повторите попытку."); } }
-  return <section className="page"><p className="eyebrow">ПЕРСОНАЛЬНЫЙ ПЛАН</p><h1>Настроим выбранную программу</h1><form className="card onboarding-form" onSubmit={submit}><label>Цель<select value={goal} onChange={e=>setGoal(e.target.value)}><option value="travel">Путешествия</option><option value="communication">Общение</option><option value="work">Работа</option><option value="self">Для себя</option></select></label><label>Минут в день<select value={minutes} onChange={e=>setMinutes(Number(e.target.value))}><option value={10}>10</option><option value={15}>15</option><option value={20}>20</option><option value={30}>30</option></select></label><label>Начальный уровень<select value={level} onChange={e=>setLevel(e.target.value)}><option value="zero">С нуля</option><option value="words">Знаю отдельные слова</option><option value="previous">Учил раньше</option></select></label><button className="button primary">Начать программу</button><p role="status">{status}</p></form></section>;
+  return <section className="page"><p className="eyebrow">ПЕРСОНАЛЬНЫЙ ПЛАН</p><h1>Настроим выбранную программу</h1><form className="card onboarding-form" onSubmit={submit}><label>Цель<select required value={goal} onChange={e=>setGoal(e.target.value)}><option value="" disabled>Выберите цель</option><option value="school">Школа и занятия с репетитором</option><option value="travel">Путешествия</option><option value="communication">Общение</option><option value="work">Работа</option><option value="self">Для себя</option></select></label><label>Минут в день<select value={minutes} onChange={e=>setMinutes(Number(e.target.value))}><option value={10}>10</option><option value={15}>15</option><option value={20}>20</option><option value={30}>30</option></select></label><label>Начальный уровень<select required value={level} onChange={e=>setLevel(e.target.value)}><option value="" disabled>Выберите уровень</option><option value="basic">Знаю основы, нужна практика</option><option value="zero">С нуля</option><option value="words">Знаю отдельные слова</option><option value="previous">Учил раньше</option></select></label><button className="button primary">Начать программу</button><p role="status">{status}</p></form></section>;
 }
 
 export function InternetAccountPage() {

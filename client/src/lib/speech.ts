@@ -23,7 +23,8 @@ export class BrowserSpeechSynthesisProvider implements TTSProvider {
       u.rate = options.rate || 1;
       const voices = speechSynthesis.getVoices();
       u.voice =
-        voices.find((v) => v.lang.toLowerCase().startsWith("it")) || null;
+        voices.find((v) => v.lang.toLowerCase() === u.lang.toLowerCase()) ||
+        voices.find((v) => v.lang.toLowerCase().split("-")[0] === u.lang.toLowerCase().split("-")[0]) || null;
       u.onend = () => resolve();
       u.onerror = () => reject(new Error("speech"));
       speechSynthesis.speak(u);

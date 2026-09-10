@@ -13,7 +13,20 @@ function renderRoute(path: string, element: React.ReactNode) {
 }
 
 describe("internet practice routes", () => {
-  afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); sessionStorage.clear(); });
+
+  it("opens guided English practice for the remembered course instead of the first Italian enrollment", async () => {
+    sessionStorage.setItem("langtutor:active-course:u", "english-junior-a1");
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url.endsWith("/auth/me")) return new Response(JSON.stringify(account));
+      if (url.endsWith("/enrollments")) return new Response(JSON.stringify({ enrollments: [enrollment, { ...enrollment, course_key: "english-junior-a1", language_key: "en", language_name: "Английский" }] }));
+      if (url.endsWith("/courses/english-junior-a1")) return new Response(JSON.stringify({ name: "English Junior", metadata: { targetLocale: "en-GB" }, lessons: [{ lesson_key: "school", title: "Школа", content: { goal: "Tell me about school", explanation: "Present Simple", words: [{ example: "I like English." }], conversation: [{ question: "What do you do after school?", modelAnswer: "I play football.", tip: "Add a reason." }] } }] }));
+      return new Response("{}", { status: 404 });
+    }));
+    renderRoute("/tutor", <InternetTutorPage />);
+    expect(await screen.findByRole("heading", { name: "Репетитор: разговорная практика" })).toBeInTheDocument();
+    expect(screen.getByText("What do you do after school?")).toBeInTheDocument();
+  });
 
   it("opens training without redirecting back to programs", async () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {

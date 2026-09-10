@@ -1,6 +1,8 @@
 import { lessons } from "./italian/a0-a1/v1/index.js";
 import { englishCoreLessons } from "./english/core/v1/index.js";
 import { phrasalVerbLessons } from "./english/phrasal-verbs/v1/index.js";
+import { photoConversationLessons } from "./english/photo-conversations.js";
+import { juniorLessons } from "./english/junior.js";
 import { chinesePlannedPack } from "./chinese/manifest.js";
 import type {ContentPack} from "./types.js";
 
@@ -18,5 +20,6 @@ export const contentPacks:ContentPack[] = [{
   ...common,aiScenarios:["intro","cafe","ticket","hotel","time","food","shopping","directions","help","home","routine","weather","health","plans"],
   lessons:lessons.map(lesson=>({...lesson,words:lesson.words.map(word=>({target:word.it,source:word.ru,example:word.example,hint:word.hint}))})),
 },{languageKey:"en",languageName:"Английский",programKey:"english-general",programName:"Английский для русскоязычных",courseKey:"english-core-a0-a1",courseName:"English Core A0–A1",version:1,targetLocale:"en-GB",cefr:["A0","A1"],...common,aiScenarios:["introductions","daily-life","travel","plans"],lessons:englishCoreLessons},
-{languageKey:"en",languageName:"Английский",programKey:"english-phrasal-verbs",programName:"English Phrasal Verbs",courseKey:"english-phrasal-verbs-a2-b1",courseName:"Phrasal Verbs A2–B1",version:1,targetLocale:"en-GB",cefr:["A2","B1"],...common,prerequisites:["english-core-a0-a1"],skills:["vocabulary","reading","listening","writing","conversation"],aiScenarios:["phrasal-verbs-context","phrasal-verbs-dialogue"],lessons:phrasalVerbLessons}];
+{languageKey:"en",languageName:"Английский",programKey:"english-phrasal-verbs",programName:"English Phrasal Verbs",courseKey:"english-phrasal-verbs-a2-b1",courseName:"Phrasal Verbs A2–B1",version:1,targetLocale:"en-GB",cefr:["A2","B1"],...common,prerequisites:["english-core-a0-a1"],skills:["vocabulary","reading","listening","writing","conversation"],aiScenarios:["phrasal-verbs-context","phrasal-verbs-dialogue"],lessons:[...phrasalVerbLessons,...photoConversationLessons]},
+{languageKey:"en",languageName:"Английский",programKey:"english-junior",programName:"Английский для школьников 3–4 класса",courseKey:"english-junior-a1",courseName:"English Junior — 3–4 класс, не с нуля",version:1,targetLocale:"en-GB",cefr:["A1","A2"],...common,aiScenarios:["school","friends","stories","weekend"],lessons:juniorLessons}];
 export const plannedContentPacks=[chinesePlannedPack] as const;
