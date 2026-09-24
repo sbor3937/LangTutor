@@ -19,6 +19,6 @@ export function GuidedEnglishTutor({ courseKey }: { courseKey: string }) {
   return <section className="page"><p className="eyebrow">{course.data.name}</p><h1>Репетитор: разговорная практика</h1>
     <p className="lead">Готовые вопросы и подсказки для самостоятельной тренировки или занятия со взрослым. Это не свободный AI-чат: автоматической оценки открытых ответов здесь нет.</p>
     <label>Тема занятия<select value={lesson?.lesson_key ?? ""} onChange={event => setSelected(event.target.value)}>{course.data.lessons.map(item => <option key={item.lesson_key} value={item.lesson_key}>{item.title}</option>)}</select></label>
-    {lesson && <><p>{lesson.content.explanation}</p><ConversationPractice key={courseKey + lesson.lesson_key} locale={course.data.metadata?.targetLocale ?? "en-GB"} prompts={lesson.content.conversation ?? [{ question: lesson.content.goal, modelAnswer: lesson.content.words[0]?.example ?? "", tip: "Используйте фразы урока и добавьте свои детали." }]} /></>}
+    {lesson && <><p>{lesson.content.explanation}</p>{lesson.content.conversation?.length ? <ConversationPractice key={courseKey + lesson.lesson_key} locale={course.data.metadata?.targetLocale ?? "en-GB"} prompts={lesson.content.conversation} /> : <p role="status">Для этой темы разговорные вопросы пока не подготовлены. Выберите другую тему или откройте карточки урока.</p>}</>}
   </section>;
 }

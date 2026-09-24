@@ -34,7 +34,7 @@ export function LessonVoiceInput({ locale, disabled, onTranscript, onStart }: {
     if (!active.current || stopping.current) return;
     stopping.current = true; setStatus("Распознаём…"); await recognition.stop();
   }
-  return <div>
+  return <div className="lesson-voice-input">
     <button type="button" style={{ touchAction: "none" }} className={recording ? "mic-button recording" : "mic-button"} disabled={disabled}
       onPointerDown={event => { if (event.button !== 0) return; event.currentTarget.setPointerCapture?.(event.pointerId); void start(); }}
       onPointerUp={() => void stop()} onPointerCancel={() => { generation.current++; active.current = false; recognition.dispose(); setRecording(false); setStatus("Запись отменена."); }}

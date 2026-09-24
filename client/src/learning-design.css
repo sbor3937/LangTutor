@@ -1,4 +1,6 @@
 /* Shared learning layout: warm palette, clear next action, readable exercises. */
+.quiz form > .lesson-voice-input { margin-top: 20px; }
+.lesson-voice-input > button { margin-bottom: 8px; }
 .learning-home .home-block { padding: clamp(20px, 3vw, 32px); border: 1px solid var(--line); border-radius: 24px; margin-top: 28px; }
 .learning-home .home-continue { background: #eef2e7; border-color: #ccd7bf; }
 .learning-home .home-catalog { background: var(--paper); margin-top: 44px; }

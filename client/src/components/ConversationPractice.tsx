@@ -10,6 +10,7 @@ export function ConversationPractice({ prompts, locale }: { prompts: Conversatio
   if (!prompt) return null;
   return <aside className="card conversation-practice">
     <p className="eyebrow">РАЗГОВОРНАЯ МИССИЯ · {index + 1} / {prompts.length}</p>
+    <p>Прочитайте или прослушайте вопрос. Ответьте на изучаемом языке голосом или текстом. Если трудно начать, нажмите «Нужна подсказка».</p>
     <h2>{prompt.question}</h2>
     <button className="button ghost" onClick={() => void tts.speak(prompt.question, { lang: locale, rate: 0.85 }).catch(() => undefined)}>Прослушать вопрос</button>
     <p>{prompt.tip}</p>
