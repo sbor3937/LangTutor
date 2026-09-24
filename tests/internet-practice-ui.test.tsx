@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -42,13 +42,17 @@ describe("internet practice routes", () => {
   });
 
   it("opens the Italian tutor composer", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => url.endsWith("/auth/me")
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => url.endsWith("/tutor") ? new Response(JSON.stringify({ replyItalian: "Piacere!", replyRussian: "Приятно познакомиться!", original: "Mi chiamo Luca", corrected: "Mi chiamo Luca.", explanationRu: "Ответ верный.", naturalVariant: null, nextQuestion: "Come stai?", scenario: "intro", level: "A0", mode: "live" })) : url.endsWith("/auth/me")
       ? new Response(JSON.stringify(account), { status: 200 })
       : new Response(JSON.stringify({ enrollments: [enrollment] }), { status: 200 })));
     renderRoute("/tutor", <InternetTutorPage />);
     expect(await screen.findByRole("heading", { name: "AI-репетитор" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Ваш ответ" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Ответить голосом" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Отправить" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Проверить ответ" })).toBeDisabled();
+    fireEvent.change(screen.getByRole("textbox", { name: "Ваш ответ" }), { target: { value: "Mi chiamo Luca" } });
+    fireEvent.click(screen.getByRole("button", { name: "Проверить ответ" }));
+    expect(await screen.findByText("Ответ верный.")).toBeInTheDocument();
+    expect(screen.getByText("Mi chiamo Luca.")).toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Mic, Volume2 } from "lucide-react";
 import { useInternetAccount } from "./InternetApp";
 import { BrowserSpeechRecognitionProvider, tts } from "../lib/speech";
+import { TutorFeedback, tutorFeedbackSchema, type TutorFeedbackData } from "./TutorFeedback";
 import { GuidedEnglishTutor } from "./GuidedEnglishTutor";
 import { ItalianTutorTask, italianStarters } from "./ItalianTutorTask";
 
@@ -12,13 +13,7 @@ type Lesson = { lesson_key: string; title: string; content: { words: Word[] } };
 type Course = { key: string; name: string; language_name: string; metadata?: { targetLocale?: string }; course_version_id: string; lessons: Lesson[] };
 type Progress = { course_version_id: string; lesson_key: string; completion_percent: number; completed: boolean };
 type TutorTurn = { role: "user" | "assistant"; text: string };
-type TutorResponse = {
-  replyItalian: string;
-  replyRussian: string;
-  corrected: string;
-  explanationRu: string;
-  nextQuestion: string;
-};
+type TutorResponse = TutorFeedbackData;
 
 async function request<T>(path: string, init?: RequestInit) {
   const response = await fetch(path, {
@@ -120,16 +115,16 @@ export function InternetTutorPage() {
   const [details, setDetails] = useState<TutorResponse | null>(null);
   const voice = useVoiceInput(setInput);
   const tutor = useMutation({
-    mutationFn: (message: string) => request<TutorResponse>("/api/v1/tutor", { method: "POST", body: JSON.stringify({ message, scenario, history: history.length ? history.slice(-12) : [{ role: "assistant", text: italianStarters[scenario].question }] }) }),
+    mutationFn: (message: string) => request<unknown>("/api/v1/tutor", { method: "POST", body: JSON.stringify({ message, scenario, language: "it", question: details?.nextQuestion || italianStarters[scenario].question, history: history.length ? history.slice(-12) : [{ role: "assistant", text: italianStarters[scenario].question }] }) }).then(value => tutorFeedbackSchema.parse(value)),
     onSuccess: (result, message) => {
       setHistory((items) => [...items, { role: "user", text: message }, { role: "assistant", text: result.replyItalian }]);
       setDetails(result);
       setInput("");
     },
   });
-  function submit(event: FormEvent) { event.preventDefault(); const message = input.trim(); if (message) tutor.mutate(message); }
+  function submit(event: FormEvent) { event.preventDefault(); const message = input.trim(); if (message && !tutor.isPending && !voice.listening) tutor.mutate(message); }
   if (!activeCourse) return <section className="page"><h1>Репетитор</h1><p>Сначала выберите учебную программу.</p><Link className="button primary" to="/programs">Выбрать программу</Link></section>;
   if (activeCourse.language_key === "en") return <GuidedEnglishTutor key={activeCourse.course_key} courseKey={activeCourse.course_key} />;
   if (activeCourse.language_key !== "it") return <section className="page"><p className="eyebrow">{activeCourse.language_name}</p><h1>Репетитор</h1><p className="lead">AI-репетитор для этой программы готовится. Сейчас доступен репетитор итальянского языка.</p></section>;
-  return <section className="page"><p className="eyebrow">{activeCourse.language_name} · A0–A1</p><h1>AI-репетитор</h1><label>Ситуация<select disabled={tutor.isPending || voice.listening} value={scenario} onChange={(event) => { setScenario(event.target.value); setHistory([]); setDetails(null); setInput(""); tutor.reset(); }}><option value="intro">Знакомство</option><option value="cafe">В кафе</option><option value="ticket">Билет и дорога</option><option value="hotel">В отеле</option><option value="shopping">В магазине</option></select></label><div className="chat" aria-live="polite">{history.map((turn, index) => <div className={`bubble ${turn.role}`} key={`${index}-${turn.role}`}>{turn.text}{turn.role === "assistant" && <button className="icon" aria-label="Прослушать реплику" onClick={() => void speak(turn.text)}><Volume2 /></button>}</div>)}</div>{details && <article className="card"><b>{details.replyItalian}</b><button className="icon" aria-label="Прослушать ответ репетитора" onClick={() => void speak(details.replyItalian)}><Volume2 /></button><p>{details.replyRussian}</p><p><strong>Исправление:</strong> {details.corrected}</p><p>{details.explanationRu}</p></article>}<ItalianTutorTask scenario={scenario} nextQuestion={details?.nextQuestion} /><form className="composer" onSubmit={submit}><button type="button" className={voice.listening ? "mic-button recording" : "mic-button"} onClick={() => void voice.toggle()}><Mic /> {voice.listening ? "Остановить" : "Ответить голосом"}</button><label className="sr-only" htmlFor="internet-tutor-input">Ваш ответ</label><input id="internet-tutor-input" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Напишите фразу на итальянском" maxLength={800} required /><button className="button primary" disabled={tutor.isPending}>Отправить</button></form><p role="status" aria-live="polite">{voice.voiceStatus}</p>{tutor.error && <p role="alert">{(tutor.error as Error).message}</p>}<small>Доступен демонстрационный режим без внешнего AI. Использование моделей определяется настройками семьи.</small></section>;
+  return <section className="page"><p className="eyebrow">{activeCourse.language_name} · A0–A1</p><h1>AI-репетитор</h1><label>Ситуация<select disabled={tutor.isPending || voice.listening} value={scenario} onChange={(event) => { setScenario(event.target.value); setHistory([]); setDetails(null); setInput(""); tutor.reset(); }}><option value="intro">Знакомство</option><option value="cafe">В кафе</option><option value="ticket">Билет и дорога</option><option value="hotel">В отеле</option><option value="shopping">В магазине</option></select></label><div className="chat" aria-live="polite">{history.map((turn, index) => <div className={`bubble ${turn.role}`} key={`${index}-${turn.role}`}>{turn.text}{turn.role === "assistant" && <button className="icon" aria-label="Прослушать реплику" onClick={() => void speak(turn.text)}><Volume2 /></button>}</div>)}</div>{details && <article className="card"><b>{details.replyItalian}</b><button className="icon" aria-label="Прослушать ответ репетитора" onClick={() => void speak(details.replyItalian)}><Volume2 /></button><p>{details.replyRussian}</p><TutorFeedback result={details} /></article>}<ItalianTutorTask scenario={scenario} nextQuestion={details?.nextQuestion} /><form className="composer" onSubmit={submit}><button disabled={tutor.isPending} type="button" className={voice.listening ? "mic-button recording" : "mic-button"} onClick={() => void voice.toggle()}><Mic /> {voice.listening ? "Остановить" : "Ответить голосом"}</button><label className="sr-only" htmlFor="internet-tutor-input">Ваш ответ</label><input disabled={tutor.isPending} id="internet-tutor-input" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Напишите фразу на итальянском" maxLength={800} required /><button className="button primary" disabled={tutor.isPending || !input.trim() || voice.listening}>{tutor.isPending ? "Проверяем…" : "Проверить ответ"}</button></form><p role="status" aria-live="polite">{voice.voiceStatus}</p>{tutor.error && <p role="alert">{(tutor.error as Error).message}</p>}<small>Доступен демонстрационный режим без внешнего AI. Использование моделей определяется настройками семьи.</small></section>;
 }

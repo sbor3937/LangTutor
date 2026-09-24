@@ -17,8 +17,8 @@ export function GuidedEnglishTutor({ courseKey }: { courseKey: string }) {
   if (!course.data) return <section className="page"><p role="alert">Не удалось загрузить задания.</p><button onClick={() => void course.refetch()}>Повторить</button></section>;
   const lesson = course.data.lessons.find(item => item.lesson_key === selected) ?? course.data.lessons[0];
   return <section className="page"><p className="eyebrow">{course.data.name}</p><h1>Репетитор: разговорная практика</h1>
-    <p className="lead">Готовые вопросы и подсказки для самостоятельной тренировки или занятия со взрослым. Это не свободный AI-чат: автоматической оценки открытых ответов здесь нет.</p>
+    <p className="lead">Ответьте голосом или текстом и нажмите «Проверить ответ». Репетитор проверит смысл и грамматику и объяснит ошибки. Проверка ИИ доступна по настройкам семьи; деморежим явно обозначается.</p>
     <label>Тема занятия<select value={lesson?.lesson_key ?? ""} onChange={event => setSelected(event.target.value)}>{course.data.lessons.map(item => <option key={item.lesson_key} value={item.lesson_key}>{item.title}</option>)}</select></label>
-    {lesson && <><p>{lesson.content.explanation}</p>{lesson.content.conversation?.length ? <ConversationPractice key={courseKey + lesson.lesson_key} locale={course.data.metadata?.targetLocale ?? "en-GB"} prompts={lesson.content.conversation} /> : <p role="status">Для этой темы разговорные вопросы пока не подготовлены. Выберите другую тему или откройте карточки урока.</p>}</>}
+    {lesson && <><p>{lesson.content.explanation}</p>{lesson.content.conversation?.length ? <ConversationPractice enableCheck key={courseKey + lesson.lesson_key} locale={course.data.metadata?.targetLocale ?? "en-GB"} prompts={lesson.content.conversation} /> : <p role="status">Для этой темы разговорные вопросы пока не подготовлены. Выберите другую тему или откройте карточки урока.</p>}</>}
   </section>;
 }
