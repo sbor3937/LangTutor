@@ -46,6 +46,21 @@ describe("internet lesson journey", () => {
     expect(JSON.parse(String(attempts[1][1]?.body)).answer).toBe("edited");
   });
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+  it("allows a correction without double-counting the same quiz question", async () => {
+    vi.stubGlobal("fetch", vi.fn(fetcher));
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter initialEntries={["/programs/italian-a0-a1/lessons/greetings"]}><Routes><Route path="/programs/:courseKey/lessons/:lessonKey" element={<InternetLessonPage />} /></Routes></MemoryRouter></QueryClientProvider>);
+    await screen.findByRole("heading", { name: "Приветствие" });
+    fireEvent.click(screen.getByRole("button", { name: "Проверка" }));
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "wrong" } });
+    fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("0 из 100"));
+    expect(screen.getByRole("textbox")).toBeEnabled();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Ciao" } });
+    fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("100 из 100"));
+    expect(screen.getByText("100 баллов")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Проверить" })).toBeDisabled();
+  });
   it("does not complete a failed quiz and resets the score for a new run", async () => {
     const mockedFetch = vi.fn(fetcher);
     vi.stubGlobal("fetch", mockedFetch);

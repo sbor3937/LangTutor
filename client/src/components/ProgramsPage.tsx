@@ -1,3 +1,4 @@
+import { internetFetch } from "../lib/internet-fetch";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -6,7 +7,7 @@ const catalogSchema = z.object({ courses: z.array(z.object({ key: z.string(), na
 type Course = z.infer<typeof catalogSchema>["courses"][number];
 export function ProgramsPage({ embedded = false, enrolledKeys = [] }: { embedded?: boolean; enrolledKeys?: string[] }) {
   const catalog = useQuery({ queryKey: ["internet-programs"], queryFn: async () => {
-    const response = await fetch("/api/v1/learning/catalog", { credentials: "include" });
+    const response = await internetFetch("/api/v1/learning/catalog", { credentials: "include" });
     if (!response.ok) throw new Error("Не удалось загрузить программы");
     return catalogSchema.parse(await response.json());
   } });

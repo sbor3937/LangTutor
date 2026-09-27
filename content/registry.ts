@@ -5,9 +5,10 @@ import { photoConversationLessons } from "./english/photo-conversations.js";
 import { juniorLessons } from "./english/junior.js";
 import { chinesePlannedPack } from "./chinese/manifest.js";
 import type {ContentPack} from "./types.js";
+import { enrichPack } from "./card-practice.js";
 
 const common={sourceLocale:"ru",prerequisites:[],skills:["vocabulary","reading","listening","writing","speaking","grammar","conversation"],scoringPolicy:{key:"deterministic-mastery",version:1},unlockRules:{kind:"linear" as const}};
-export const contentPacks:ContentPack[] = [{
+const basePacks:ContentPack[] = [{
   languageKey: "it",
   languageName: "Итальянский",
   programKey: "italian-general",
@@ -22,4 +23,5 @@ export const contentPacks:ContentPack[] = [{
 },{languageKey:"en",languageName:"Английский",programKey:"english-general",programName:"Английский для русскоязычных",courseKey:"english-core-a0-a1",courseName:"English Core A0–A1",version:1,targetLocale:"en-GB",cefr:["A0","A1"],...common,aiScenarios:["introductions","daily-life","travel","plans"],lessons:englishCoreLessons},
 {languageKey:"en",languageName:"Английский",programKey:"english-phrasal-verbs",programName:"English Phrasal Verbs",courseKey:"english-phrasal-verbs-a2-b1",courseName:"Phrasal Verbs A2–B1",version:1,targetLocale:"en-GB",cefr:["A2","B1"],...common,prerequisites:["english-core-a0-a1"],skills:["vocabulary","reading","listening","writing","conversation"],aiScenarios:["phrasal-verbs-context","phrasal-verbs-dialogue"],lessons:[...phrasalVerbLessons,...photoConversationLessons]},
 {languageKey:"en",languageName:"Английский",programKey:"english-junior",programName:"Английский для школьников 3–4 класса",courseKey:"english-junior-a1",courseName:"English Junior — 3–4 класс, не с нуля",version:1,targetLocale:"en-GB",cefr:["A1","A2"],...common,aiScenarios:["school","friends","stories","weekend"],lessons:juniorLessons}];
+export const contentPacks = basePacks.map(enrichPack);
 export const plannedContentPacks=[chinesePlannedPack] as const;

@@ -22,7 +22,7 @@ it("sends the learner's answer and actual question, renders feedback and resets 
   fireEvent.click(screen.getByRole("button", { name: "Проверить ответ" }));
   expect(await screen.findByText(payload.explanationRu)).toBeInTheDocument();
   const init = (fetcher.mock.calls as unknown as [string, RequestInit][])[0][1];
-  expect(JSON.parse(init.body as string)).toMatchObject({ language: "en", message: answer, question: prompts[0].question });
+  expect(JSON.parse(init.body as string)).toMatchObject({ language: "en", message: answer, question: prompts[0].question + "\n" + prompts[0].tip });
   fireEvent.change(screen.getByRole("textbox"), { target: { value: "Another answer" } });
   expect(screen.queryByText(payload.explanationRu)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Другой вопрос" }));

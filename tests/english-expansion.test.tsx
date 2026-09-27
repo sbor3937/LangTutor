@@ -11,7 +11,7 @@ describe("English learning expansion", () => {
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   it("adds all 75 worksheet expressions without changing existing lessons", () => {
     const pack = contentPacks.find(item => item.courseKey === "english-phrasal-verbs-a2-b1")!;
-    expect(pack.lessons.slice(0, 5)).toEqual(phrasalVerbLessons);
+    expect(pack.lessons.slice(0, 5).map(lesson => ({ ...lesson, words: lesson.words.map(({ target, source, example, hint }) => ({ target, source, example, hint })) }))).toEqual(phrasalVerbLessons);
     expect(pack.version).toBe(1);
     expect(pack.lessons.map(item => item.number)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
     expect(photoConversationLessons.flatMap(item => item.words)).toHaveLength(75);

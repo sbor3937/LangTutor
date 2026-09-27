@@ -1,3 +1,4 @@
+import { internetFetch } from "../lib/internet-fetch";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -9,7 +10,7 @@ const courseSchema = z.object({ name: z.string(), metadata: z.object({ targetLoc
 export function GuidedEnglishTutor({ courseKey }: { courseKey: string }) {
   const [selected, setSelected] = useState("");
   const course = useQuery({ queryKey: ["guided-tutor-course", courseKey], queryFn: async () => {
-    const response = await fetch(`/api/v1/learning/courses/${encodeURIComponent(courseKey)}`, { credentials: "include" });
+    const response = await internetFetch(`/api/v1/learning/courses/${encodeURIComponent(courseKey)}`, { credentials: "include" });
     if (!response.ok) throw new Error("Не удалось загрузить задания");
     return courseSchema.parse(await response.json());
   } });

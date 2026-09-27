@@ -1,3 +1,4 @@
+import { internetFetch } from "../lib/internet-fetch";
 import { createContext, FormEvent, useContext, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -10,19 +11,11 @@ type Context = { me: InternetMe; enrollments: Enrollment[]; activeCourse: Enroll
 const InternetContext = createContext<Context | null>(null);
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, { credentials: "include", headers: { "Content-Type": "application/json" }, ...init });
+  const response = await internetFetch(path, { credentials: "include", headers: { "Content-Type": "application/json" }, ...init });
   if (!response.ok) throw Object.assign(new Error("REQUEST_FAILED"), { status: response.status });
   return response.json();
 }
-async function loadMe() {
-  try { return await json<InternetMe>("/api/v1/auth/me"); }
-  catch (error) {
-    if ((error as { status?: number }).status !== 401) throw error;
-    const refreshed = await fetch("/api/v1/auth/refresh", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
-    if (!refreshed.ok) throw error;
-    return json<InternetMe>("/api/v1/auth/me");
-  }
-}
+async function loadMe() { return json<InternetMe>("/api/v1/auth/me"); }
 
 export function InternetGate() {
   const location = useLocation();

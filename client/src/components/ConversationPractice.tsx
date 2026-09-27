@@ -1,3 +1,4 @@
+import { internetFetch } from "../lib/internet-fetch";
 import { useEffect, useRef, useState } from "react";
 import type { ConversationPrompt } from "../../../content/types";
 import { LessonVoiceInput } from "./LessonVoiceInput";
@@ -17,9 +18,9 @@ export function ConversationPractice({ prompts, locale, enableCheck = false }: {
     const submittedRevision = revision.current;
     setPending(true); setResult(null); setError("");
     try {
-      const response = await fetch("/api/v1/tutor", {
+      const response = await internetFetch("/api/v1/tutor", {
         method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language: locale.startsWith("en") ? "en" : "it", scenario: "intro", question: prompt.question, message: answer.trim(), history: [] }),
+        body: JSON.stringify({ language: locale.startsWith("en") ? "en" : "it", scenario: "intro", question: `${prompt.question}\n${prompt.tip}`, message: answer.trim(), history: [] }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error?.message ?? "Не удалось проверить ответ. Попробуйте ещё раз.");

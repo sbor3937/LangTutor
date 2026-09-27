@@ -1,3 +1,4 @@
+import { internetFetch } from "../lib/internet-fetch";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -16,7 +17,7 @@ type TutorTurn = { role: "user" | "assistant"; text: string };
 type TutorResponse = TutorFeedbackData;
 
 async function request<T>(path: string, init?: RequestInit) {
-  const response = await fetch(path, {
+  const response = await internetFetch(path, {
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     ...init,
@@ -80,7 +81,7 @@ export function InternetTrainingPage() {
     queryFn: () => request<{ lessons: Progress[] }>("/api/v1/learning/progress"),
     enabled: Boolean(activeCourse),
   });
-  const voice = useVoiceInput(setAnswer, course.data?.metadata?.targetLocale ?? "en-GB");
+  const voice = useVoiceInput(value => { setAnswer(value); setFeedback(""); }, course.data?.metadata?.targetLocale ?? (activeCourse?.language_key === "it" ? "it-IT" : "en-GB"));
   useEffect(() => { setPosition(0); setAnswer(""); setFeedback(""); }, [activeCourse?.course_key]);
   const exercises = useMemo(() => {
     if (!course.data) return [];
@@ -100,11 +101,11 @@ export function InternetTrainingPage() {
     onSuccess: (result) => setFeedback(`${result.feedback}. Результат: ${result.score} из 100.`),
     onError: (error) => setFeedback((error as Error).message),
   });
-  function submit(event: FormEvent) { event.preventDefault(); if (current && answer.trim()) attempt.mutate(); }
+  function submit(event: FormEvent) { event.preventDefault(); if (current && answer.trim() && !attempt.isPending && !voice.listening) attempt.mutate(); }
   if (!activeCourse) return <section className="page"><h1>Тренировка</h1><p>Сначала выберите учебную программу.</p><Link className="button primary" to="/programs">Выбрать программу</Link></section>;
   if (course.isLoading || progress.isLoading) return <section className="page"><h1>Тренировка</h1><p role="status">Готовим задания…</p></section>;
   if (!current) return <section className="page"><p className="eyebrow">{activeCourse.language_name}</p><h1>Тренировка</h1><p className="lead">Начните хотя бы один урок — после этого здесь появятся задания по пройденному материалу.</p><Link className="button primary" to={`/programs/${activeCourse.course_key}`}>Перейти к урокам</Link></section>;
-  return <section className="page"><p className="eyebrow">{activeCourse.language_name} · ПРОЙДЕННЫЙ МАТЕРИАЛ</p><h1>Тренировка</h1><article className="card practice"><p>{current.lessonTitle}</p><h2>{current.word.source}</h2><form onSubmit={submit}><label>Ответ на изучаемом языке<input autoFocus value={answer} onChange={(event) => setAnswer(event.target.value)} required maxLength={500} /></label><div className="row wrap"><button type="button" className={voice.listening ? "mic-button recording" : "mic-button"} onClick={() => void voice.toggle()}><Mic /> {voice.listening ? "Остановить" : "Ответить голосом"}</button><button className="button primary" disabled={attempt.isPending}>Проверить</button></div></form><p role="status" aria-live="polite">{voice.voiceStatus || feedback}</p>{feedback && <div className="row wrap"><button className="button ghost" onClick={() => void speak(current.word.target, course.data?.metadata?.targetLocale)}><Volume2 /> Прослушать ответ</button><button className="button secondary" onClick={() => { setPosition((value) => value + 1); setAnswer(""); setFeedback(""); }}>Следующее задание</button></div>}</article></section>;
+  return <section className="page"><p className="eyebrow">{activeCourse.language_name} · ПРОЙДЕННЫЙ МАТЕРИАЛ</p><h1>Тренировка</h1><article className="card practice"><p>{current.lessonTitle}</p><h2>{current.word.source}</h2><form onSubmit={submit}><label>Ответ на изучаемом языке<input autoFocus value={answer} disabled={attempt.isPending} onChange={(event) => { setAnswer(event.target.value); setFeedback(""); }} required maxLength={500} /></label><div className="row wrap"><button type="button" disabled={attempt.isPending} className={voice.listening ? "mic-button recording" : "mic-button"} onClick={() => void voice.toggle()}><Mic /> {voice.listening ? "Остановить" : "Ответить голосом"}</button><button className="button primary" disabled={attempt.isPending || !answer.trim() || voice.listening}>{attempt.isPending ? "Проверяем…" : "Проверить"}</button></div></form><p role="status" aria-live="polite">{voice.voiceStatus}</p><p role="status" aria-live="polite">{feedback}</p>{feedback && attempt.isSuccess && <div className="row wrap"><button className="button ghost" onClick={() => void speak(current.word.target, course.data?.metadata?.targetLocale)}><Volume2 /> Прослушать ответ</button><button className="button secondary" disabled={attempt.isPending} onClick={() => { setPosition((value) => value + 1); setAnswer(""); setFeedback(""); attempt.reset(); }}>Следующее задание</button></div>}</article></section>;
 }
 
 export function InternetTutorPage() {
