@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { config } from "../config.js";
+import { selectTutorModel } from "./model-selection.js";
 import { AiUsageRepository } from "./repository.js";
 import { AiPolicyError, AiProviderError, type TutorProvider, type TutorProviderInput } from "./types.js";
 
@@ -10,7 +11,7 @@ export class AiGateway {
   private readonly circuits=new Map<string,Circuit>();
   constructor(private readonly repository:AiUsageRepository,private readonly providers:Map<string,TutorProvider>){}
   async tutor(userId:string,familyId:string|null,input:Omit<TutorProviderInput,"model"|"maxOutputTokens">){
-    const requestId=crypto.randomUUID(),preferred=config.liveAI&&config.openrouterKey?config.aiModelKey:"demo/italian-a0";
+    const requestId=crypto.randomUUID(),preferred=selectTutorModel(config);
     const reserved=await this.repository.reserve(userId,familyId,requestId,preferred,config.aiReservedTokens);
     const provider=this.providers.get(reserved.providerKey); if(!provider){await this.repository.fail(userId,familyId,requestId,"PROVIDER_NOT_REGISTERED",0);throw new AiProviderError("PROVIDER_NOT_REGISTERED",false);}
     const started=Date.now();

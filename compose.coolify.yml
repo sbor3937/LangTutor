@@ -17,7 +17,9 @@ services:
       TRUST_PROXY_HOPS: "1"
       ENABLE_LIVE_AI: ${ENABLE_LIVE_AI:-false}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      AI_MODEL_KEY: ${AI_MODEL_KEY:-openrouter/gpt-4.1-mini}
+      KODIKROUTER_API_KEY: ${KODIKROUTER_API_KEY:-}
+      KODIKROUTER_PROXY_URL: ${KODIKROUTER_PROXY_URL:-}
+      AI_MODEL_KEY: ${AI_MODEL_KEY:-kodikrouter/gpt-4.1-nano}
       APP_URL: ${APP_URL:-https://langmind.sbortech.ru}
       SERVICE_FQDN_WEB_3000: /
     volumes:

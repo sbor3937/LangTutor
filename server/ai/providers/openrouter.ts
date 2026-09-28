@@ -15,16 +15,18 @@ const responseSchema = z.object({
 });
 
 type Fetcher = typeof undiciFetch;
-export class OpenRouterTutorProvider implements TutorProvider {
-  readonly key = "openrouter";
-  private readonly dispatcher = config.proxyUrl ? new ProxyAgent(config.proxyUrl) : undefined;
-  constructor(private readonly fetcher: Fetcher = undiciFetch, private readonly apiKey = config.openrouterKey) {}
+export class OpenAICompatibleTutorProvider implements TutorProvider {
+  private readonly dispatcher: ProxyAgent | undefined;
+  constructor(readonly key: string, private readonly apiKey: string, private readonly baseUrl: string,
+    proxyUrl = "", private readonly fetcher: Fetcher = undiciFetch) {
+    this.dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
+  }
   async complete(input: TutorProviderInput) {
     if (!this.apiKey) throw new AiProviderError("PROVIDER_NOT_CONFIGURED", false);
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), config.aiTimeoutMs);
     try {
-      const response = await this.fetcher(`${config.openrouterBase}/chat/completions`, {
-        method: "POST", signal: controller.signal, dispatcher: this.dispatcher,
+      const response = await this.fetcher(`${this.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+        method: "POST", redirect: "error", signal: controller.signal, dispatcher: this.dispatcher,
         headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json", "HTTP-Referer": config.appUrl, "X-Title": "LangTutor" },
         body: JSON.stringify({ model: input.model, temperature: 0.65, max_tokens: input.maxOutputTokens, response_format: { type: "json_object" }, messages: [
           { role: "system", content: `Ты терпеливый репетитор ${input.language === "en" ? "английского A1–B1" : "итальянского A0–A1"} для русскоязычного ученика. Сценарий: ${input.scenario}. Изученные уроки: ${input.unlockedLessonIds.join(", ") || "нет"}. Ответь только JSON с полями replyItalian, replyRussian, original, corrected, explanationRu, naturalVariant, nextQuestion, scenario, level. Проверь смысл ответа относительно вопроса и грамматику, не требуй совпадения с образцом. Сохрани факты ученика. В explanationRu явно скажи, верен ли ответ, объясни ошибки по-русски. corrected — исправленный ответ. replyItalian (историческое имя поля), corrected и nextQuestion должны быть на изучаемом языке, replyRussian и explanationRu — по-русски. level — A0 или A1. Не запрашивай персональные данные.` },
@@ -41,5 +43,17 @@ export class OpenRouterTutorProvider implements TutorProvider {
       if (error instanceof Error && error.name === "AbortError") throw new AiProviderError("UPSTREAM_TIMEOUT", true);
       throw new AiProviderError(error instanceof SyntaxError || error instanceof z.ZodError ? "UPSTREAM_INVALID_RESPONSE" : "UPSTREAM_FAILURE", false);
     } finally { clearTimeout(timer); }
+  }
+}
+
+export class OpenRouterTutorProvider extends OpenAICompatibleTutorProvider {
+  constructor(fetcher: Fetcher = undiciFetch, apiKey = config.openrouterKey) {
+    super("openrouter", apiKey, config.openrouterBase, config.proxyUrl, fetcher);
+  }
+}
+
+export class KodikRouterTutorProvider extends OpenAICompatibleTutorProvider {
+  constructor(fetcher: Fetcher = undiciFetch, apiKey = config.kodikrouterKey) {
+    super("kodikrouter", apiKey, "https://api.kodikrouter.ru/v1", config.kodikrouterProxy, fetcher);
   }
 }

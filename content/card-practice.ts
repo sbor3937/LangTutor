@@ -39,6 +39,12 @@ const pointOut: ConversationPrompt[] = [
   { question: "Your teacher notices a mistake. Use point out to tell a friend what happened.", modelAnswer: "My teacher pointed out a mistake in my homework.", tip: "Расскажите о прошлом: point → pointed. Не нужно повторять образец дословно." },
 ];
 const plain = (s: string) => s.replace(/[.!?…]/g, "").trim();
+const handIn: ConversationPrompt[] = [
+  { question: "You are a teacher. Ask your students to hand in their homework politely.", modelAnswer: "Please hand in your homework.", tip: "Вы — учитель. Вежливо попросите учеников сдать домашнюю работу. Используйте hand in." },
+  { question: "You forgot the deadline. Ask your teacher when you need to hand in your homework.", modelAnswer: "When do I need to hand in my homework?", tip: "Уточните срок сдачи домашней работы. Начните с When." },
+  { question: "Your friend asks about your project. Say that you handed it in yesterday.", modelAnswer: "I handed in my project yesterday.", tip: "Расскажите о вчерашнем дне. Прошедшее время: handed in." },
+  { question: "You need one more day. Ask if you can hand in your homework tomorrow.", modelAnswer: "Can I hand in my homework tomorrow, please?", tip: "Попросите разрешения сдать работу завтра. Используйте hand in." },
+];
 
 export function enrichPack(pack: ContentPack): ContentPack {
   return { ...pack, lessons: pack.lessons.map(lesson => ({ ...lesson, words: lesson.words.map(original => {
@@ -59,14 +65,15 @@ export function enrichPack(pack: ContentPack): ContentPack {
     const existing = (lesson.conversation ?? []).filter(prompt => prompt.modelAnswer === word.example);
     const gap = word.example.replace(/[\p{L}\p{N}]+(?=[^\p{L}\p{N}]*$)/u, "___");
     const practice: ConversationPrompt[] = [
-      { question: en ? "How would you say the sentence in the hint in English?" : "Come si dice in italiano?",
-        modelAnswer: word.example, tip: `Переведите: «${word.exampleTranslation}» Используйте выражение карточки: ${word.target}.` },
+      { question: en ? `Read: “${word.example}” Now change one detail and say your new sentence using “${word.target}”.` : `Leggi: «${word.example}» Ora cambia un dettaglio e usa «${word.target}» in una nuova frase.`,
+        modelAnswer: word.example, tip: `Измените одну деталь примера: имя, время, место или предмет. Сохраните выражение «${word.target}». Смысл примера: «${word.exampleTranslation}». Образец показывает исходную фразу; ваш ответ должен отличаться.` },
       { question: en ? `Complete the sentence and say it in full: ${gap}` : `Completa la frase: ${gap}`,
         modelAnswer: word.example, tip: `Восстановите фразу целиком. Смысл: «${word.exampleTranslation}».` },
       { question: en ? `Can you give your own example with “${word.target}”?` : `Puoi fare un esempio con «${word.target}»?`,
         modelAnswer: word.example, tip: `Придумайте ситуацию с «${word.target}» (${word.source}). Можно говорить о вымышленном герое. Образец — лишь один из вариантов.` },
     ];
-    word.conversation = en && word.target === "point out" ? pointOut : [...existing, ...practice];
+    word.conversation = en && word.target === "point out" ? pointOut
+      : en && word.target === "hand in" ? handIn : [...existing, ...practice];
     return word;
   }) })) };
 }

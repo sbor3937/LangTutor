@@ -10,6 +10,8 @@ export const config = {
   ),
   liveAI: process.env.ENABLE_LIVE_AI === "true",
   openrouterKey: process.env.OPENROUTER_API_KEY || "",
+  kodikrouterKey: process.env.KODIKROUTER_API_KEY || "",
+  kodikrouterProxy: process.env.KODIKROUTER_PROXY_URL || "",
   openrouterModel: process.env.OPENROUTER_MODEL || "openai/gpt-4.1-mini",
   openrouterBase:
     process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
@@ -35,7 +37,7 @@ export const config = {
   aiTimeoutMs: Number(process.env.AI_TIMEOUT_MS || 20_000),
   aiConcurrency: Number(process.env.AI_CONCURRENCY || 8),
   aiReservedTokens: Number(process.env.AI_RESERVED_TOKENS || 800),
-  aiModelKey: process.env.AI_MODEL_KEY || "openrouter/gpt-4.1-mini",
+  aiModelKey: process.env.AI_MODEL_KEY || "kodikrouter/gpt-4.1-nano",
   aiCircuitFailures: Number(process.env.AI_CIRCUIT_FAILURES || 3),
   aiCircuitResetMs: Number(process.env.AI_CIRCUIT_RESET_MS || 30_000),
   adminMfaEncryptionKey: process.env.ADMIN_MFA_ENCRYPTION_KEY || "",
