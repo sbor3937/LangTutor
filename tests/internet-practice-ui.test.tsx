@@ -78,7 +78,10 @@ describe("internet practice routes", () => {
     fireEvent.click(screen.getByRole("radio", { name: "По порядку" }));
     expect(screen.getByRole("heading", { name: "привет" })).toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "draft" } });
-    fireEvent.click(screen.getByRole("radio", { name: "Сначала менее изученные" }));
+    const weakFirst = screen.getByRole("radio", { name: "Сначала менее изученные" });
+    weakFirst.focus();
+    fireEvent.click(weakFirst);
+    expect(weakFirst).toHaveFocus();
     expect(screen.getByRole("textbox")).toHaveValue("");
     expect(screen.getByRole("heading", { name: "спасибо" })).toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "grazie" } });
