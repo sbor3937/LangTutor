@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -34,6 +34,7 @@ describe("internet practice routes", () => {
       if (url.endsWith("/enrollments")) return new Response(JSON.stringify({ enrollments: [enrollment] }), { status: 200 });
       if (url.endsWith("/courses/italian-a0-a1")) return new Response(JSON.stringify({ key: enrollment.course_key, name: enrollment.course_name, language_name: enrollment.language_name, course_version_id: "v1", lessons: [] }), { status: 200 });
       if (url.endsWith("/progress")) return new Response(JSON.stringify({ lessons: [] }), { status: 200 });
+      if (url.includes("/training-scores/")) return new Response(JSON.stringify({ scores: [] }));
       return new Response("{}", { status: 404 });
     }));
     renderRoute("/training", <InternetTrainingPage />);
@@ -54,5 +55,44 @@ describe("internet practice routes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Проверить ответ" }));
     expect(await screen.findByText("Ответ верный.")).toBeInTheDocument();
     expect(screen.getByText("Mi chiamo Luca.")).toBeInTheDocument();
+  });
+
+  it("switches order, keeps a round stable after scoring and applies new ratings next round", async () => {
+    let graded = false;
+    const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith("/auth/me")) return new Response(JSON.stringify(account));
+      if (url.endsWith("/enrollments")) return new Response(JSON.stringify({ enrollments: [enrollment] }));
+      if (url.includes("/courses/")) return new Response(JSON.stringify({ course_version_id: "v1", lessons: [{ lesson_key: "intro", title: "Знакомство", content: { words: [{ target: "ciao", source: "привет" }, { target: "grazie", source: "спасибо" }] } }] }));
+      if (url.endsWith("/progress")) return new Response(JSON.stringify({ lessons: [{ course_version_id: "v1", lesson_key: "intro", completion_percent: 50 }] }));
+      if (url.includes("/training-scores/")) return new Response(JSON.stringify({ scores: [{ lesson_key: "intro", exercise_key: "word-1", score: graded ? 0 : 100, attempts: 1 }, { lesson_key: "intro", exercise_key: "word-2", score: graded ? 100 : 20, attempts: 1 }] }));
+      if (url.endsWith("/attempts")) {
+        expect(JSON.parse(String(init?.body))).toMatchObject({ courseKey: enrollment.course_key });
+        graded = true;
+        return new Response(JSON.stringify({ score: 100, correct: true, feedback: "Верно" }));
+      }
+      return new Response("{}", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    renderRoute("/training", <InternetTrainingPage />);
+    expect(await screen.findByRole("radio", { name: "Случайно" })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: "По порядку" }));
+    expect(screen.getByRole("heading", { name: "привет" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "draft" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Сначала менее изученные" }));
+    expect(screen.getByRole("textbox")).toHaveValue("");
+    expect(screen.getByRole("heading", { name: "спасибо" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "grazie" } });
+    fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Следующее задание" })).toBeEnabled());
+    expect(screen.getByRole("heading", { name: "спасибо" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Следующее задание" }));
+    expect(screen.getByRole("heading", { name: "привет" })).toBeInTheDocument();
+    expect(screen.getByText("Слово 2 из 2")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "ciao" } });
+    fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Начать новый круг" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Начать новый круг" }));
+    expect(screen.getByRole("heading", { name: "привет" })).toBeInTheDocument();
+    expect(screen.getByText("Слово 1 из 2")).toBeInTheDocument();
   });
 });

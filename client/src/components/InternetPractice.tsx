@@ -1,6 +1,8 @@
 import { internetFetch } from "../lib/internet-fetch";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
+import { orderTraining, trainingScoresSchema, type TrainingOrder, type TrainingScore } from "../../../shared/training-order";
 import { Link } from "react-router-dom";
 import { Mic, Volume2 } from "lucide-react";
 import { useInternetAccount } from "./InternetApp";
@@ -68,9 +70,9 @@ async function speak(text: string, lang = "it-IT") {
 
 export function InternetTrainingPage() {
   const { activeCourse } = useInternetAccount();
-  const [position, setPosition] = useState(0);
-  const [answer, setAnswer] = useState("");
-  const [feedback, setFeedback] = useState("");
+  const [order, setOrder] = useState<TrainingOrder>("random");
+  const [round, setRound] = useState(0);
+  const [locked, setLocked] = useState(false);
   const course = useQuery({
     queryKey: ["internet-course", activeCourse?.course_key],
     queryFn: () => request<Course>(`/api/v1/learning/courses/${activeCourse!.course_key}`),
@@ -81,8 +83,11 @@ export function InternetTrainingPage() {
     queryFn: () => request<{ lessons: Progress[] }>("/api/v1/learning/progress"),
     enabled: Boolean(activeCourse),
   });
-  const voice = useVoiceInput(value => { setAnswer(value); setFeedback(""); }, course.data?.metadata?.targetLocale ?? (activeCourse?.language_key === "it" ? "it-IT" : "en-GB"));
-  useEffect(() => { setPosition(0); setAnswer(""); setFeedback(""); }, [activeCourse?.course_key]);
+  const scores = useQuery({
+    queryKey: ["internet-training-scores", activeCourse?.course_key],
+    queryFn: () => request<unknown>(`/api/v1/learning/training-scores/${activeCourse!.course_key}`).then(value => trainingScoresSchema.parse(value)),
+    enabled: Boolean(activeCourse),
+  });
   const exercises = useMemo(() => {
     if (!course.data) return [];
     const started = new Set((progress.data?.lessons ?? [])
@@ -92,20 +97,47 @@ export function InternetTrainingPage() {
       .filter((lesson) => started.has(lesson.lesson_key) && lesson.content.words[0])
       .flatMap((lesson) => lesson.content.words.map((word, index) => ({ lessonKey: lesson.lesson_key, lessonTitle: lesson.title, word, exerciseKey: `word-${index + 1}` })));
   }, [course.data, progress.data?.lessons]);
-  const current = exercises[position % Math.max(exercises.length, 1)];
+  if (!activeCourse) return <section className="page"><h1>Тренировка</h1><p>Сначала выберите учебную программу.</p><Link className="button primary" to="/programs">Выбрать программу</Link></section>;
+  if (course.isLoading || progress.isLoading || scores.isLoading) return <section className="page"><h1>Тренировка</h1><p role="status">Готовим задания…</p></section>;
+  if (course.isError || progress.isError || scores.isError) return <section className="page"><h1>Тренировка</h1><p role="alert">Не удалось загрузить задания или результаты проверок.</p><button className="button secondary" onClick={() => { void course.refetch(); void progress.refetch(); void scores.refetch(); }}>Попробовать снова</button></section>;
+  if (!exercises.length) return <section className="page"><p className="eyebrow">{activeCourse.language_name}</p><h1>Тренировка</h1><p className="lead">Начните хотя бы один урок — после этого здесь появятся задания по пройденному материалу.</p><Link className="button primary" to={`/programs/${activeCourse.course_key}`}>Перейти к урокам</Link></section>;
+  return <section className="page"><p className="eyebrow">{activeCourse.language_name} · ПРОЙДЕННЫЙ МАТЕРИАЛ</p><h1>Тренировка</h1>
+    <fieldset className="training-order" disabled={locked}><legend>Порядок слов</legend>
+      {([["sequential", "По порядку"], ["random", "Случайно"], ["weak-first", "Сначала менее изученные"]] as const).map(([value, label]) => <label key={value}><input type="radio" name="training-order" value={value} checked={order === value} onChange={() => { setOrder(value); setRound(0); }} /> {label}</label>)}
+    </fieldset>
+    <p className="meta">{order === "weak-first" ? "Сначала слова без проверок и с низким средним результатом последних пяти ответов. Рейтинг обновляется для следующего круга." : order === "random" ? "Каждый круг перемешивается заново. Все слова встречаются один раз за круг." : "Слова идут в порядке уроков."} При смене порядка начинается новый круг.</p>
+    <TrainingSession key={`${activeCourse.course_key}:${order}:${round}`} courseKey={activeCourse.course_key} exercises={exercises} scores={scores.data?.scores ?? []} order={order} locale={course.data?.metadata?.targetLocale ?? (activeCourse.language_key === "it" ? "it-IT" : "en-GB")} onRestart={() => setRound(value => value + 1)} onLock={setLocked} />
+  </section>;
+}
+
+type TrainingExercise = { lessonKey: string; lessonTitle: string; word: Word; exerciseKey: string };
+const trainingAttemptResultSchema = z.object({ score: z.number().min(0).max(100), correct: z.boolean(), feedback: z.string() });
+
+function TrainingSession({ courseKey, exercises, scores, order, locale, onRestart, onLock }: {
+  courseKey: string; exercises: TrainingExercise[]; scores: TrainingScore[]; order: TrainingOrder; locale: string;
+  onRestart: () => void; onLock: (locked: boolean) => void;
+}) {
+  const queryClient = useQueryClient();
+  const [queue] = useState(() => orderTraining(exercises, order, scores));
+  const [position, setPosition] = useState(0);
+  const [answer, setAnswer] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const voice = useVoiceInput(value => { setAnswer(value); setFeedback(""); }, locale);
+  const current = queue[position];
   const attempt = useMutation({
-    mutationFn: () => request<{ score: number; correct: boolean; feedback: string }>("/api/v1/learning/attempts", {
+    mutationFn: () => request<unknown>("/api/v1/learning/attempts", {
       method: "POST",
-      body: JSON.stringify({ courseKey: activeCourse!.course_key, lessonKey: current.lessonKey, exerciseKey: current.exerciseKey, answer }),
-    }),
-    onSuccess: (result) => setFeedback(`${result.feedback}. Результат: ${result.score} из 100.`),
+      body: JSON.stringify({ courseKey, lessonKey: current.lessonKey, exerciseKey: current.exerciseKey, answer }),
+    }).then(value => trainingAttemptResultSchema.parse(value)),
+    onSuccess: async (result) => {
+      setFeedback(`${result.feedback}. Результат: ${result.score} из 100.`);
+      await queryClient.invalidateQueries({ queryKey: ["internet-training-scores", courseKey] });
+    },
     onError: (error) => setFeedback((error as Error).message),
   });
+  useEffect(() => { onLock(attempt.isPending || voice.listening); return () => onLock(false); }, [attempt.isPending, voice.listening, onLock]);
   function submit(event: FormEvent) { event.preventDefault(); if (current && answer.trim() && !attempt.isPending && !voice.listening) attempt.mutate(); }
-  if (!activeCourse) return <section className="page"><h1>Тренировка</h1><p>Сначала выберите учебную программу.</p><Link className="button primary" to="/programs">Выбрать программу</Link></section>;
-  if (course.isLoading || progress.isLoading) return <section className="page"><h1>Тренировка</h1><p role="status">Готовим задания…</p></section>;
-  if (!current) return <section className="page"><p className="eyebrow">{activeCourse.language_name}</p><h1>Тренировка</h1><p className="lead">Начните хотя бы один урок — после этого здесь появятся задания по пройденному материалу.</p><Link className="button primary" to={`/programs/${activeCourse.course_key}`}>Перейти к урокам</Link></section>;
-  return <section className="page"><p className="eyebrow">{activeCourse.language_name} · ПРОЙДЕННЫЙ МАТЕРИАЛ</p><h1>Тренировка</h1><article className="card practice"><p>{current.lessonTitle}</p><h2>{current.word.source}</h2><form onSubmit={submit}><label>Ответ на изучаемом языке<input autoFocus value={answer} disabled={attempt.isPending} onChange={(event) => { setAnswer(event.target.value); setFeedback(""); }} required maxLength={500} /></label><div className="row wrap"><button type="button" disabled={attempt.isPending} className={voice.listening ? "mic-button recording" : "mic-button"} onClick={() => void voice.toggle()}><Mic /> {voice.listening ? "Остановить" : "Ответить голосом"}</button><button className="button primary" disabled={attempt.isPending || !answer.trim() || voice.listening}>{attempt.isPending ? "Проверяем…" : "Проверить"}</button></div></form><p role="status" aria-live="polite">{voice.voiceStatus}</p><p role="status" aria-live="polite">{feedback}</p>{feedback && attempt.isSuccess && <div className="row wrap"><button className="button ghost" onClick={() => void speak(current.word.target, course.data?.metadata?.targetLocale)}><Volume2 /> Прослушать ответ</button><button className="button secondary" disabled={attempt.isPending} onClick={() => { setPosition((value) => value + 1); setAnswer(""); setFeedback(""); attempt.reset(); }}>Следующее задание</button></div>}</article></section>;
+  return <article className="card practice"><p className="meta" aria-live="polite">Слово {position + 1} из {queue.length}</p><p>{current.lessonTitle}</p><h2>{current.word.source}</h2><form onSubmit={submit}><label>Ответ на изучаемом языке<input autoFocus value={answer} disabled={attempt.isPending} onChange={(event) => { setAnswer(event.target.value); setFeedback(""); }} required maxLength={500} /></label><div className="row wrap"><button type="button" disabled={attempt.isPending} className={voice.listening ? "mic-button recording" : "mic-button"} onClick={() => void voice.toggle()}><Mic /> {voice.listening ? "Остановить" : "Ответить голосом"}</button><button className="button primary" disabled={attempt.isPending || !answer.trim() || voice.listening}>{attempt.isPending ? "Проверяем…" : "Проверить"}</button></div></form><p role="status" aria-live="polite">{voice.voiceStatus}</p><p role="status" aria-live="polite">{feedback}</p>{feedback && attempt.isSuccess && <div className="row wrap"><button className="button ghost" onClick={() => void speak(current.word.target, locale)}><Volume2 /> Прослушать ответ</button><button className="button secondary" disabled={attempt.isPending || voice.listening} onClick={() => { if (position === queue.length - 1) onRestart(); else setPosition(value => value + 1); setAnswer(""); setFeedback(""); attempt.reset(); }}>{position === queue.length - 1 ? "Начать новый круг" : "Следующее задание"}</button></div>}</article>;
 }
 
 export function InternetTutorPage() {

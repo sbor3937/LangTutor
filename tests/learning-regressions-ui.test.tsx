@@ -46,6 +46,7 @@ it.each([["it", "Ciao", "it-IT"], ["en", "Hello", "en-GB"]])("keeps the %s train
     if (path.endsWith("/enrollments")) return new Response(JSON.stringify({ enrollments: [enrollment] }));
     if (path.includes("/courses/")) return new Response(JSON.stringify({ course_version_id: "v", metadata: { targetLocale: locale }, lessons: [{ lesson_key: "greeting", title: "Приветствие", content: { words: [{ target: answer, source: "Привет" }] } }] }));
     if (path.endsWith("/progress")) return new Response(JSON.stringify({ lessons: [{ course_version_id: "v", lesson_key: "greeting", completion_percent: 30 }] }));
+    if (path.includes("/training-scores/")) return new Response(JSON.stringify({ scores: [] }));
     if (path.endsWith("/attempts")) return new Response(JSON.stringify(scoreAnswer(answer, JSON.parse(String(init?.body)).answer, language)));
     return new Response("{}", { status: 404 });
   }));
@@ -59,5 +60,5 @@ it.each([["it", "Ciao", "it-IT"], ["en", "Hello", "en-GB"]])("keeps the %s train
   fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
   await waitFor(() => expect(screen.getByText("Верно. Результат: 100 из 100.")).toBeInTheDocument());
   expect(screen.getByText("Ответ распознан.")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Следующее задание" })).toBeEnabled();
+  await waitFor(() => expect(screen.getByRole("button", { name: "Начать новый круг" })).toBeEnabled());
 });
