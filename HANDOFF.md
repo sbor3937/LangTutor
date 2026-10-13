@@ -1,4 +1,65 @@
-# LangTutor / LangMind — точка продолжения, 2026-09-29
+# LangTutor / LangMind — точка продолжения, 2026-10-14
+
+## Последнее обновление: тренировка и новый ноутбук
+
+- Checkout нового ноутбука: `D:\AI\LangTutor`. Обновлён до `origin/main`
+  без потери локальных файлов: перенесённые неотслеживаемые файлы совпали с Git.
+- В интернет-модуле `/training` появились переключатели «По порядку»,
+  «Случайно» (по умолчанию), «Сначала менее изученные». Каждый круг фиксирует
+  очередь; рейтинг берётся из последних пяти проверок каждого упражнения
+  пользователя в зачисленной версии курса. Новый круг обновляет очередь;
+  смена режима начинает новый круг и сохраняет фокус на переключателе.
+- Код: `client/src/components/InternetPractice.tsx`, `shared/training-order.ts`,
+  `server/learning/{router,service}.ts`. Новый защищённый endpoint:
+  `GET /api/v1/learning/training-scores/:courseKey`. Новых миграций нет.
+- Пользователь явно поручил выкладку на production. Выложенный код:
+  `186342058dd9b7acd60b0219f78caaf1aea1a274` (включает обучение, обновления
+  production npm-зависимостей и `apt-get upgrade` в runtime Docker layer).
+  Staging deployment: `ftq3obty0ypkgrm3ipfoufbr`;
+  production deployment: `ereabuxgnjyiapwgzmtyarsm`. Оба — `finished`.
+  Успешная выкладка production: 2026-10-14 по Москве.
+- Финальные проверки: lint, оба typecheck, 142 теста без пропусков на отдельной
+  локальной PostgreSQL test DB, build. Тесты запускались последовательно
+  (`--maxWorkers=1 --fileParallelism=false`) из-за общей SQLite test DB.
+  Сохранены прежние три Fast Refresh warning и warning о bundle >500 kB.
+- Staging: `https://langtutor-staging.185.207.1.58.sslip.io`.
+  Публичные и внутренние readiness — 200; asset `/assets/index-CnnAl5CC.js`
+  содержит новые переключатели. Production HTTPS/HSTS/CSP проверены.
+  API без сессии возвращает 401; runtime-role `langtutor_runtime` без BYPASSRLS;
+  проверенные tenant-таблицы сохраняют FORCE RLS. Хеширование Argon2 работает.
+  Load smoke production: 100 запросов, concurrency 5, ошибок 0, p95 115 мс.
+  Это серверные/HTTP и автоматизированные UI-проверки, не ручной тест микрофона.
+- `npm audit --omit=dev`: 0 уязвимостей. Обновлены compression, proxy-addr,
+  qs, undici и Nodemailer до 10.1.0; составление письма проверено без отправки.
+  Trivy production: 49 HIGH/CRITICAL findings, **0 с доступным исправлением**.
+  Это НЕ результат «в образе 0 уязвимостей». Включённый CVE-2023-45853 для
+  `zlib1g` Debian Bookworm помечен поставщиком как ignored: уязвимая MiniZip
+  не входит в этот бинарный пакет. [Объяснение Debian](https://security-tracker.debian.org/tracker/CVE-2023-45853).
+  Остальные предупреждения без фиксированной версии сохранены в полном отчёте
+  на VPS: `~/.config/langtutor/release-evidence/r9vzdlrwornadyxlgjzpfexp-186342058dd9b7acd60b0219f78caaf1aea1a274-image-scan.json`.
+  Их устранение требует отдельного решения по базовому образу/обновлениям ОС;
+  не выдавать текущую выкладку за полностью чистый image vulnerability gate.
+- Непосредственно перед production создан backup на VPS:
+  `~/.config/langtutor/backups/before-training-20261013T214044Z.dump`,
+  327524 байта, mode 600, `pg_restore --list` успешен. Имя содержит UTC дату.
+  Не восстанавливать эту БД ради отката кода: свежий прогресс нельзя терять.
+- SSH восстановлен ключом `C:\Users\BorisenkoSA\.ssh\langtutor_vps_ed25519`:
+  пользователь добавил публичный ключ через root-консоль VPS. Ошибка кавычек
+  PowerShell при создании ключа исправлена; ключ теперь пригоден для BatchMode.
+  Подключение: `ssh -i "$env:USERPROFILE/.ssh/langtutor_vps_ed25519" deploy@185.207.1.58`.
+  Временная GitHub-ветка `access` с публичным установщиком удалена.
+- Сохранённый `~/.config/langtutor/coolify.token` сейчас получает 401.
+  Его не перевыпускали. Выкладка выполнена через существующий административный
+  SSH/Docker-доступ и штатную `queue_application_deployment` внутри Coolify,
+  с проверкой application UUID, repository, branch, compose path и точного SHA.
+  Не печатать environment, токены и полный `docker inspect`.
+- Node.js 22.20.0 установлен локально в
+  `C:\Users\BorisenkoSA\.codex\tools\node-v22.20.0-win-x64`, официальный
+  SHA-256 проверен; каталог добавлен в пользовательский PATH.
+- Production AI остался включён, staging — в demo. Семейные настройки, лимиты
+  и разрешения не менялись; реальные платные AI-проверки не запускались.
+
+Далее — исторический checkpoint от 29 сентября 2026 года.
 
 ## Сначала прочитать
 
